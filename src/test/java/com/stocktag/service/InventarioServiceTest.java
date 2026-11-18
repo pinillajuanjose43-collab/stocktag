@@ -224,6 +224,7 @@ class InventarioServiceTest {
         crearConStock("7701", "Martillo", 2, 5);
         crearConStock("7703", "Tubería PVC, 1/2\" \"Pavco\"", 4, 1);
         crearConStock("7704", "=HYPERLINK(\"http://x\")", 0, 3);
+        crearConStock("7705", "Clavos; 2 pulgadas", 1, 10);
 
         byte[] bytes = inventarioService.generarReporteCSV();
         String csv = new String(bytes, StandardCharsets.UTF_8);
@@ -231,11 +232,12 @@ class InventarioServiceTest {
         // BOM de UTF-8 al inicio, para que Excel muestre bien las tildes
         assertThat(bytes).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
         String[] lineas = csv.substring(1).split("\r\n");
-        assertThat(lineas[0]).isEqualTo("Código de barras,Nombre,Cantidad,Stock mínimo,Estado");
-        assertThat(lineas).hasSize(4);
-        assertThat(lineas[1]).isEqualTo("7704,\"'=HYPERLINK(\"\"http://x\"\")\",3,0,OK");
-        assertThat(lineas[2]).isEqualTo("7701,Martillo,5,2,OK");
-        assertThat(lineas[3]).isEqualTo("7703,\"Tubería PVC, 1/2\"\" \"\"Pavco\"\"\",1,4,Stock bajo");
+        assertThat(lineas[0]).isEqualTo("Código de barras;Nombre;Cantidad;Stock mínimo;Estado");
+        assertThat(lineas).hasSize(5);
+        assertThat(lineas[1]).isEqualTo("7704;\"'=HYPERLINK(\"\"http://x\"\")\";3;0;OK");
+        assertThat(lineas[2]).isEqualTo("7705;\"Clavos; 2 pulgadas\";10;1;OK");
+        assertThat(lineas[3]).isEqualTo("7701;Martillo;5;2;OK");
+        assertThat(lineas[4]).isEqualTo("7703;\"Tubería PVC, 1/2\"\" \"\"Pavco\"\"\";1;4;Stock bajo");
     }
 
     // --- Utilidades ------------------------------------------------------------------

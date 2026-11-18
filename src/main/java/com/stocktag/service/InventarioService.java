@@ -30,10 +30,10 @@ import java.util.Optional;
 public class InventarioService {
 
     /** Encabezados del reporte CSV, en español. */
-    static final String ENCABEZADOS_CSV = "Código de barras,Nombre,Cantidad,Stock mínimo,Estado";
+    static final String ENCABEZADOS_CSV = "Código de barras;Nombre;Cantidad;Stock mínimo;Estado";
 
     /** BOM de UTF-8: hace que Excel reconozca las tildes al abrir el archivo. */
-    private static final String BOM_UTF8 = "﻿";
+    private static final String BOM_UTF8 = "\uFEFF";
 
     private final ProductoRepository productoRepository;
     private final MovimientoRepository movimientoRepository;
@@ -92,17 +92,17 @@ public class InventarioService {
     }
 
     /**
-     * Reporte de stock de la empresa autenticada en CSV (UTF-8, encabezados en español).
+     * Reporte de stock de la empresa autenticada en CSV (UTF-8, separador ';', encabezados en español).
      * Devuelve los bytes listos para enviar como descarga.
      */
     @Transactional(readOnly = true)
     public byte[] generarReporteCSV() {
         StringBuilder csv = new StringBuilder(BOM_UTF8).append(ENCABEZADOS_CSV).append("\r\n");
         for (Producto p : consultarStock()) {
-            csv.append(celdaCsv(p.getCodigoBarras())).append(',')
-                    .append(celdaCsv(p.getNombre())).append(',')
-                    .append(p.getCantidad()).append(',')
-                    .append(p.getStockMinimo()).append(',')
+            csv.append(celdaCsv(p.getCodigoBarras())).append(';')
+                    .append(celdaCsv(p.getNombre())).append(';')
+                    .append(p.getCantidad()).append(';')
+                    .append(p.getStockMinimo()).append(';')
                     .append(p.tieneStockBajo() ? "Stock bajo" : "OK")
                     .append("\r\n");
         }
@@ -160,8 +160,9 @@ public class InventarioService {
     }
 
     /**
-     * Escapa una celda según RFC 4180 y neutraliza fórmulas (=, +, -, @) para que
-     * una hoja de cálculo no las ejecute al abrir el archivo.
+     * Escapa una celda: va entre comillas si contiene ; , comillas o saltos de línea
+     * (las comillas internas se duplican). También neutraliza fórmulas (=, +, -, @)
+     * para que una hoja de cálculo no las ejecute al abrir el archivo.
      */
     private static String celdaCsv(String valor) {
         if (valor == null) {
@@ -171,7 +172,7 @@ public class InventarioService {
         if (!texto.isEmpty() && "=+-@\t\r".indexOf(texto.charAt(0)) >= 0) {
             texto = "'" + texto;
         }
-        if (texto.contains(",") || texto.contains("\"") || texto.contains("\n") || texto.contains("\r")) {
+        if (texto.contains(";") || texto.contains(",") || texto.contains("\"") || texto.contains("\n") || texto.contains("\r")) {
             texto = "\"" + texto.replace("\"", "\"\"") + "\"";
         }
         return texto;
