@@ -58,6 +58,13 @@ Paquete base: `com.stocktag`
 - Todo vive en un fragmento Thymeleaf compartido (`templates/fragments/layout.html`) y en `static/js/tema.js`. Ninguna vista debe definir su propio tema.
 - No usar colores fijos (`bg-white`, `text-dark`, colores hex en CSS). Usar las clases y variables de Bootstrap (`bg-body`, `text-body`, `var(--bs-...)`) para que ambos temas se vean bien.
 
+## Diseño
+- Para decisiones visuales (layout, color, tipografía, espaciado, componentes, accesibilidad) usar el skill `ui-ux-pro-max` (`.claude/skills/ui-ux-pro-max/`). Su buscador se ejecuta con `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<consulta>" --domain <dominio>`.
+- Estilo de referencia: **Data-Dense Dashboard** (tablas compactas, mucha información por pantalla, jerarquía clara).
+- Se aplica con **Bootstrap 5.3 + Thymeleaf**. No usar Tailwind ni React aunque el skill los sugiera: traducir sus recomendaciones a clases y variables de Bootstrap (respetando la sección "Modo claro / oscuro").
+- Sin emojis (ni como íconos ni en textos) y sin degradados.
+- Ignorar las recomendaciones de landing page (hero, testimonios, CTA de marketing, etc.): StockTag es una herramienta interna, no un sitio de marketing.
+
 ## Convenciones
 - Código (clases, métodos, variables) en español, siguiendo los nombres del plan. Textos de la interfaz en español.
 - Inyección por constructor, sin `@Autowired` en campos.
