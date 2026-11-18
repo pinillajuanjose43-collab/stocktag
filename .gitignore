@@ -36,3 +36,7 @@ target/
 .classpath
 .project
 .settings/
+
+# Python (skill ui-ux-pro-max)
+__pycache__/
+*.pyc

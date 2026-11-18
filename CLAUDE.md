@@ -8,7 +8,7 @@ El plan completo del proyecto está en `docs/plan-stocktag.md` (si existe); este
 ## Stack (no cambiar sin acordarlo con el equipo)
 - Java 21, Spring Boot 3, Maven (usar el wrapper `./mvnw`)
 - Spring Web, Spring Data JPA, Spring Validation, Spring Security
-- Vistas: Thymeleaf + Bootstrap 5.3 (por CDN). Sin React ni frontend separado.
+- Vistas: Thymeleaf + Bootstrap 5.3 y Bootstrap Icons servidos localmente con WebJars (versiones en `pom.xml`, rutas `/webjars/...`), para que la app funcione sin internet. Las fuentes Fira vienen de Google Fonts sin bloquear la carga y, si no cargan, se usan las fuentes del sistema. Sin React ni frontend separado.
 - Base de datos: H2 en modo archivo (`jdbc:h2:file:./data/stocktag`), para que los datos no se pierdan al reiniciar.
 - Pruebas: JUnit 5 + Spring Boot Test.
 - Entregable final: un `.jar` ejecutable (`java -jar stocktag.jar`).
@@ -16,7 +16,7 @@ El plan completo del proyecto está en `docs/plan-stocktag.md` (si existe); este
 ## Comandos
 - Ejecutar: `./mvnw spring-boot:run` → http://localhost:8080
 - Pruebas: `./mvnw test`
-- Empaquetar: `./mvnw clean package` → `target/stocktag-*.jar`
+- Empaquetar: `./mvnw clean package` → `target/stocktag.jar` (`finalName` en `pom.xml`)
 
 ## Estructura de paquetes
 Paquete base: `com.stocktag`
@@ -73,8 +73,5 @@ Paquete base: `com.stocktag`
 - Cada service nuevo debe tener al menos una prueba unitaria.
 
 ## Trabajo en equipo
-- Ramas `feature/<nombre>`, Pull Requests pequeños, merge a `main` a diario.
-- Responsables por módulo (cada uno edita principalmente sus archivos):
-  - Modelo, repositorios, `InventarioService`, pruebas
-  - Vistas de inventario: dashboard, escaneo, lista, alertas, formulario de producto
-  - Seguridad, panel `/admin`, historial de movimientos, CSV, datos de ejemplo, empaquetado
+- El desarrollo lo hizo una sola persona: no hay responsables por módulo.
+- Ramas `feature/<nombre>`, Pull Requests pequeños y merge a `main`.

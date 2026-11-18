@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Página de error genérica (404, 500, ...). Reemplaza la "Whitelabel Error Page" de Spring, que está en inglés.
+  El 403 tiene su propia página en error/403.html.
+-->
+<head th:replace="~{fragments/layout :: head(${status == 404} ? 'Página no encontrada' : 'Error')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="formulario-contenedor border rounded p-4">
+        <i class="bi bi-exclamation-octagon fs-3 d-block mb-2 text-body-secondary" aria-hidden="true"></i>
+        <th:block th:if="${status == 404}">
+            <h1 class="h5">No encontramos esta página</h1>
+            <p class="text-body-secondary mb-3">
+                La dirección no existe o cambió. Revisa el enlace o vuelve al inicio.
+            </p>
+        </th:block>
+        <th:block th:unless="${status == 404}">
+            <h1 class="h5">Algo salió mal</h1>
+            <p class="text-body-secondary mb-3">
+                No se pudo completar la solicitud<span th:if="${status != null}" th:text="' (código ' + ${status} + ')'"></span>.
+                Intenta de nuevo; si el problema sigue, comunícate con el administrador de la plataforma.
+            </p>
+        </th:block>
+        <a sec:authorize="hasRole('ADMIN_PLATAFORMA')" th:href="@{/admin}"
+           class="btn btn-barra d-inline-flex align-items-center gap-2">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Ir a empresas
+        </a>
+        <a sec:authorize="hasRole('EMPRESA')" th:href="@{/}"
+           class="btn btn-barra d-inline-flex align-items-center gap-2">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Ir al inventario
+        </a>
+        <a sec:authorize="!isAuthenticated()" th:href="@{/login}"
+           class="btn btn-barra d-inline-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Iniciar sesión
+        </a>
+    </div>
+</main>
+</body>
+</html>

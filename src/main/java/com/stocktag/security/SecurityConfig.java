@@ -18,7 +18,7 @@ public class SecurityConfig {
     public SecurityFilterChain filtroSeguridad(HttpSecurity http, SessionRegistry sessionRegistry) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/js/**", "/error").permitAll()
+                        .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN_PLATAFORMA")
                         .anyRequest().hasRole("EMPRESA"))
                 .formLogin(form -> form

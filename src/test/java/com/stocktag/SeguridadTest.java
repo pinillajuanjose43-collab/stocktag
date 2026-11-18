@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -83,5 +84,21 @@ class SeguridadTest {
                 .andExpect(content().string(containsString("Papelería Central")));
         mockMvc.perform(get("/admin").with(user(principal)))
                 .andExpect(status().isForbidden());
+    }
+
+    /** Bootstrap e íconos se sirven desde el .jar (WebJars) y el login los necesita sin sesión. */
+    @Test
+    void estilosLocalesSeSirvenSinSesionYSinCdn() throws Exception {
+        mockMvc.perform(get("/webjars/bootstrap/dist/css/bootstrap.min.css"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/webjars/bootstrap-icons/font/bootstrap-icons.min.css"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/webjars/bootstrap-icons/font/fonts/bootstrap-icons.woff2"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/webjars/bootstrap/5.3.8/dist/css/bootstrap.min.css")))
+                .andExpect(content().string(containsString("/webjars/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css")))
+                .andExpect(content().string(not(containsString("cdn.jsdelivr.net"))));
     }
 }
