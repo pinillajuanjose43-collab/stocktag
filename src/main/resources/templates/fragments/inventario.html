@@ -4,6 +4,8 @@
   Fragmentos compartidos por las vistas de inventario.
     <div th:replace="~{fragments/inventario :: mensajes}"></div>
     <span th:replace="~{fragments/inventario :: estado(${producto})}"></span>
+    <a th:replace="~{fragments/inventario :: descargarCsv}"></a>
+    <span th:replace="~{fragments/inventario :: tipoMovimiento(${movimiento.tipo})}"></span>
 -->
 <body>
 
@@ -32,6 +34,25 @@
     <span th:unless="${producto.tieneStockBajo()}"
           class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle estado">
         <i class="bi bi-check-circle" aria-hidden="true"></i> OK
+    </span>
+</span>
+
+<!-- Botón de descarga del reporte CSV de todo el inventario (GET /reporte.csv). -->
+<a th:fragment="descargarCsv" th:href="@{/reporte.csv}"
+   class="btn btn-barra btn-sm btn-tactil d-flex align-items-center gap-1"
+   title="Descarga el inventario completo en CSV (UTF-8, separado por punto y coma)">
+    <i class="bi bi-download" aria-hidden="true"></i> Descargar CSV
+</a>
+
+<!-- Tipo de movimiento: texto + ícono (los mismos de los botones de escaneo), nunca solo color. -->
+<span th:fragment="tipoMovimiento(tipo)" th:remove="tag">
+    <span th:if="${tipo.name() == 'ENTRADA'}"
+          class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle estado">
+        <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Entrada
+    </span>
+    <span th:if="${tipo.name() == 'SALIDA'}"
+          class="badge rounded-pill bg-danger-subtle text-danger-emphasis border border-danger-subtle estado">
+        <i class="bi bi-box-arrow-up" aria-hidden="true"></i> Salida
     </span>
 </span>
 

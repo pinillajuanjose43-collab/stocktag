@@ -25,4 +25,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             order by p.nombre asc
             """)
     List<Producto> buscarConStockBajo(@Param("empresaId") Long empresaId);
+
+    @Query("select count(p) from Producto p where p.empresa.id = :empresaId and p.cantidad <= p.stockMinimo")
+    long contarConStockBajo(@Param("empresaId") Long empresaId);
 }

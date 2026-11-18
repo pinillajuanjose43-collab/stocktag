@@ -13,9 +13,14 @@
                 <span class="cifra" th:text="${totalStockBajo}">0</span> con stock bajo
             </p>
         </div>
-        <a th:href="@{/productos/nuevo}" class="btn btn-success btn-sm d-flex align-items-center gap-1">
-            <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <th:block th:if="${totalProductos > 0}">
+                <a th:replace="~{fragments/inventario :: descargarCsv}"></a>
+            </th:block>
+            <a th:href="@{/productos/nuevo}" class="btn btn-success btn-sm btn-tactil d-flex align-items-center gap-1">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+            </a>
+        </div>
     </div>
 
     <div th:replace="~{fragments/inventario :: mensajes}"></div>
