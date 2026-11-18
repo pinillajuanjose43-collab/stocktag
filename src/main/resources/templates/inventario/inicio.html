@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inventario')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-0">Inventario</h1>
+            <p class="text-body-secondary small mb-0" th:text="${#authentication.principal.nombreEmpresa}">Empresa</p>
+        </div>
+    </div>
+
+    <div class="border rounded p-4 text-center text-body-secondary">
+        <i class="bi bi-box-seam fs-3 d-block mb-2" aria-hidden="true"></i>
+        <p class="mb-0">Aquí verás tus productos, el escaneo y las alertas de stock. Esta sección está en construcción.</p>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/*
+ * Ajustes globales de StockTag sobre Bootstrap 5.3.
+ * Sin colores fijos: solo variables y clases de Bootstrap, para que funcionen el tema claro y el oscuro.
+ * Estilo: Data-Dense Dashboard (skill ui-ux-pro-max), plano, sin sombras ni degradados.
+ */
+
+/* Tipografía del skill (par "Dashboard Data"): Fira Sans para la interfaz, Fira Code para códigos y cifras. */
+:root,
+[data-bs-theme] {
+    --bs-body-font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bs-font-monospace: "Fira Code", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+/*
+ * Botones de la barra de navegación: borde tenue y texto con color de cuerpo
+ * (btn-outline-secondary no alcanza contraste 4.5:1 en tema oscuro).
+ */
+.btn-barra {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-hover-color: var(--bs-emphasis-color);
+    --bs-btn-hover-bg: var(--bs-secondary-bg);
+    --bs-btn-hover-border-color: var(--bs-secondary-color);
+    --bs-btn-active-color: var(--bs-emphasis-color);
+    --bs-btn-active-bg: var(--bs-secondary-bg);
+    --bs-btn-active-border-color: var(--bs-secondary-color);
+}
+
+/* Botones de solo ícono: área táctil mínima de 44x44 px. */
+.btn-icono {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    justify-content: center;
+}
+
+/* Botón de tema: muestra la luna en claro (pasar a oscuro) y el sol en oscuro (pasar a claro). */
+[data-bs-theme="dark"] .icono-luna,
+:root:not([data-bs-theme="dark"]) .icono-sol {
+    display: none;
+}
+
+/* Pantalla de login: tarjeta compacta centrada. */
+.login-contenedor {
+    max-width: 24rem;
+}

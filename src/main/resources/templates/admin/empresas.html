@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Gestión de empresas')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-0">Gestión de empresas</h1>
+            <p class="text-body-secondary small mb-0">Registra empresas y activa o desactiva su acceso.</p>
+        </div>
+    </div>
+
+    <div class="border rounded p-4 text-center text-body-secondary">
+        <i class="bi bi-buildings fs-3 d-block mb-2" aria-hidden="true"></i>
+        <p class="mb-0">Todavía no hay empresas registradas. Esta sección está en construcción.</p>
+    </div>
+</main>
+</body>
+</html>
