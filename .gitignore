@@ -27,7 +27,7 @@ replay_pid*
 target/
 
 # Base de datos H2 local (modo archivo)
-data/
+/data/
 
 # IDEs
 .idea/
