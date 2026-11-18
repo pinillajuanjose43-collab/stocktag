@@ -4,7 +4,10 @@
  * Estilo: Data-Dense Dashboard (skill ui-ux-pro-max), plano, sin sombras ni degradados.
  */
 
-/* Tipografía del skill (par "Dashboard Data"): Fira Sans para la interfaz, Fira Code para códigos y cifras. */
+/*
+ * Tipografía del skill (par "Dashboard Data"): Fira Sans para la interfaz, Fira Code para códigos y cifras.
+ * Las Fira vienen de Google Fonts; sin internet se usan las fuentes del sistema que siguen en cada lista.
+ */
 :root,
 [data-bs-theme] {
     --bs-body-font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

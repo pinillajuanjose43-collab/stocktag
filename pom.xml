@@ -19,6 +19,9 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Versiones de Bootstrap y Bootstrap Icons servidas localmente (WebJars), sin depender de CDN. -->
+        <bootstrap.version>5.3.8</bootstrap.version>
+        <bootstrap-icons.version>1.13.1</bootstrap-icons.version>
     </properties>
 
     <dependencies>
@@ -47,6 +50,25 @@
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
         </dependency>
 
+        <!--
+          Bootstrap y Bootstrap Icons empaquetados dentro del .jar: la aplicación se ve con estilos sin internet.
+          webjars-locator-lite permite usar /webjars/bootstrap/... sin escribir la versión en las plantillas.
+        -->
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>${bootstrap.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>bootstrap-icons</artifactId>
+            <version>${bootstrap-icons.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>webjars-locator-lite</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -66,6 +88,8 @@
     </dependencies>
 
     <build>
+        <!-- ./mvnw clean package genera target/stocktag.jar -->
+        <finalName>stocktag</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

@@ -45,10 +45,15 @@ public class Movimiento {
     }
 
     public Movimiento(Producto producto, TipoMovimiento tipo, int cantidad) {
+        this(producto, tipo, cantidad, LocalDateTime.now());
+    }
+
+    /** Movimiento con una fecha dada. Solo lo usan los datos de ejemplo para armar un historial de días pasados. */
+    public Movimiento(Producto producto, TipoMovimiento tipo, int cantidad, LocalDateTime fecha) {
         this.producto = producto;
         this.tipo = tipo;
         this.cantidad = cantidad;
-        this.fecha = LocalDateTime.now();
+        this.fecha = fecha;
     }
 
     public Long getId() {
