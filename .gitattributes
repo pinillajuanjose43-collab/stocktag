@@ -1,0 +1,3 @@
+# La carpeta .claude/ contiene herramientas de desarrollo (skill de diseño en Python),
+# no código de StockTag: se excluye de las estadísticas de lenguajes de GitHub.
+.claude/** linguist-vendored
