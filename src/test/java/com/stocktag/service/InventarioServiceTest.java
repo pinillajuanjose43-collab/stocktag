@@ -18,11 +18,13 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -278,6 +280,157 @@ class InventarioServiceTest {
         assertThat(lineas[4]).isEqualTo("7703;\"Tubería PVC, 1/2\"\" \"\"Pavco\"\"\";1;4;Stock bajo");
     }
 
+    // --- Alertas con unidades faltantes ----------------------------------------------
+
+    @Test
+    void listarAlertasCalculaLasUnidadesQueFaltanYPoneLosAgotadosPrimero() {
+        iniciarSesionComo(ferreteria);
+        crearConStock("1", "Brocha", 5, 2);    // faltan 3
+        crearConStock("2", "Lija", 5, 5);      // en el mínimo: faltan 0
+        crearConStock("3", "Pegante", 5, 6);   // sin alerta
+        crearConStock("4", "Cinta", 4, 0);     // agotado: faltan 4
+        crearConStock("5", "Alambre", 1, 0);   // agotado: faltan 1
+
+        List<AlertaStock> alertas = inventarioService.listarAlertasStock();
+
+        assertThat(alertas).extracting(a -> a.producto().getNombre())
+                .containsExactly("Alambre", "Cinta", "Brocha", "Lija");
+        assertThat(alertas).extracting(AlertaStock::unidadesFaltantes).containsExactly(1, 4, 3, 0);
+        assertThat(alertas).extracting(AlertaStock::agotado).containsExactly(true, true, false, false);
+        assertThat(inventarioService.contarAlertasStock()).isEqualTo(4);
+    }
+
+    @Test
+    void lasAlertasYElContadorSonSoloDeLaEmpresaAutenticada() {
+        iniciarSesionComo(ferreteria);
+        crearConStock("7701", "Martillo", 10, 3);
+
+        iniciarSesionComo(papeleria);
+        crearConStock("5501", "Cuaderno", 2, 8);
+
+        assertThat(inventarioService.listarAlertasStock()).isEmpty();
+        assertThat(inventarioService.contarAlertasStock()).isZero();
+
+        iniciarSesionComo(ferreteria);
+        assertThat(inventarioService.listarAlertasStock()).extracting(a -> a.producto().getNombre())
+                .containsExactly("Martillo");
+        assertThat(inventarioService.contarAlertasStock()).isEqualTo(1);
+    }
+
+    // --- Historial de movimientos ----------------------------------------------------
+
+    @Test
+    void historialSoloMuestraLosMovimientosDeLaEmpresaAutenticada() {
+        iniciarSesionComo(ferreteria);
+        crearConStock("7701", "Martillo", 1, 5);
+
+        iniciarSesionComo(papeleria);
+        Producto cuaderno = crearConStock("5501", "Cuaderno", 1, 8);
+        inventarioService.registrarMovimiento(cuaderno.getId(), TipoMovimiento.SALIDA, 2);
+
+        Page<Movimiento> historial = inventarioService.consultarMovimientos(null, null, null, 1);
+
+        assertThat(historial.getTotalElements()).isEqualTo(2);
+        assertThat(historial.getContent()).extracting(m -> m.getProducto().getNombre())
+                .containsOnly("Cuaderno");
+    }
+
+    @Test
+    void historialVaDelMasRecienteAlMasAntiguo() {
+        iniciarSesionComo(ferreteria);
+        Producto martillo = crearConStock("7701", "Martillo", 1, 10);
+        Movimiento salida = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 1);
+        Movimiento entrada = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.ENTRADA, 4);
+        cambiarFecha(salida, LocalDateTime.of(2026, 3, 1, 9, 0));
+        cambiarFecha(entrada, LocalDateTime.of(2026, 5, 1, 9, 0));
+
+        List<Movimiento> historial = inventarioService.consultarMovimientos(null, null, null, 1).getContent();
+
+        // La ENTRADA inicial de 10 es de hoy; después la de mayo y al final la de marzo.
+        assertThat(historial).extracting(Movimiento::getCantidad).containsExactly(10, 4, 1);
+    }
+
+    @Test
+    void historialFiltraPorTipo() {
+        iniciarSesionComo(ferreteria);
+        Producto martillo = crearConStock("7701", "Martillo", 1, 10);
+        inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 1);
+        inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 2);
+
+        assertThat(inventarioService.consultarMovimientos(TipoMovimiento.SALIDA, null, null, 1).getContent())
+                .extracting(Movimiento::getTipo).containsExactly(TipoMovimiento.SALIDA, TipoMovimiento.SALIDA);
+        assertThat(inventarioService.consultarMovimientos(TipoMovimiento.ENTRADA, null, null, 1).getContent())
+                .extracting(Movimiento::getCantidad).containsExactly(10);
+    }
+
+    @Test
+    void historialFiltraPorRangoDeFechasIncluyendoLosDiasCompletos() {
+        iniciarSesionComo(ferreteria);
+        Producto martillo = crearConStock("7701", "Martillo", 1, 100);
+        Movimiento antes = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 1);
+        Movimiento primerDia = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 2);
+        Movimiento ultimoDia = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 3);
+        Movimiento despues = inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.SALIDA, 4);
+        cambiarFecha(antes, LocalDateTime.of(2026, 10, 31, 23, 59, 59));
+        cambiarFecha(primerDia, LocalDateTime.of(2026, 11, 1, 0, 0));
+        cambiarFecha(ultimoDia, LocalDateTime.of(2026, 11, 10, 23, 59, 59));
+        cambiarFecha(despues, LocalDateTime.of(2026, 11, 11, 0, 0));
+
+        LocalDate desde = LocalDate.of(2026, 11, 1);
+        LocalDate hasta = LocalDate.of(2026, 11, 10);
+
+        assertThat(inventarioService.consultarMovimientos(TipoMovimiento.SALIDA, desde, hasta, 1).getContent())
+                .extracting(Movimiento::getCantidad).containsExactly(3, 2);
+        // Solo "desde" o solo "hasta"
+        assertThat(inventarioService.consultarMovimientos(TipoMovimiento.SALIDA, LocalDate.of(2026, 11, 11), null, 1)
+                .getContent()).extracting(Movimiento::getCantidad).containsExactly(4);
+        assertThat(inventarioService.consultarMovimientos(TipoMovimiento.SALIDA, null, LocalDate.of(2026, 10, 31), 1)
+                .getContent()).extracting(Movimiento::getCantidad).containsExactly(1);
+    }
+
+    @Test
+    void historialConRangoInvertidoLanzaExcepcion() {
+        iniciarSesionComo(ferreteria);
+
+        assertThatThrownBy(() -> inventarioService.consultarMovimientos(
+                null, LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 1), 1))
+                .isInstanceOf(InventarioException.class)
+                .hasMessage("La fecha \"desde\" no puede ser posterior a la fecha \"hasta\".");
+    }
+
+    @Test
+    void historialSeDivideEnPaginasDe25() {
+        iniciarSesionComo(ferreteria);
+        Producto martillo = crearConStock("7701", "Martillo", 1, 0);
+        for (int i = 1; i <= 30; i++) {
+            inventarioService.registrarMovimiento(martillo.getId(), TipoMovimiento.ENTRADA, i);
+        }
+
+        Page<Movimiento> primera = inventarioService.consultarMovimientos(null, null, null, 1);
+        Page<Movimiento> segunda = inventarioService.consultarMovimientos(null, null, null, 2);
+
+        assertThat(primera.getContent()).hasSize(InventarioService.MOVIMIENTOS_POR_PAGINA).hasSize(25);
+        assertThat(primera.getTotalElements()).isEqualTo(30);
+        assertThat(primera.getTotalPages()).isEqualTo(2);
+        assertThat(segunda.getContent()).hasSize(5);
+        // Una página fuera de rango se ajusta a la primera o a la última
+        assertThat(inventarioService.consultarMovimientos(null, null, null, 99).getNumber()).isEqualTo(1);
+        assertThat(inventarioService.consultarMovimientos(null, null, null, -3).getNumber()).isZero();
+    }
+
+    @Test
+    void historialRequiereUsuarioDeEmpresa() {
+        assertThatThrownBy(() -> inventarioService.consultarMovimientos(null, null, null, 1))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void nombreDelArchivoDelReporteLlevaLaFechaDeHoy() {
+        assertThat(inventarioService.nombreArchivoReporte())
+                .isEqualTo("stocktag-inventario-" + LocalDate.now() + ".csv")
+                .matches("stocktag-inventario-\\d{4}-\\d{2}-\\d{2}\\.csv");
+    }
+
     // --- Utilidades ------------------------------------------------------------------
 
     private void iniciarSesionComo(Empresa empresa) {
@@ -299,6 +452,17 @@ class InventarioServiceTest {
     /** Escribe en la base y vacía la caché de JPA para leer lo que realmente quedó guardado. */
     private void sincronizar() {
         entityManager.flush();
+        entityManager.clear();
+    }
+
+    /** Cambia la fecha de un movimiento ya guardado (la entidad no expone un setter de fecha). */
+    private void cambiarFecha(Movimiento movimiento, LocalDateTime fecha) {
+        entityManager.flush();
+        entityManager.getEntityManager()
+                .createQuery("update Movimiento m set m.fecha = :fecha where m.id = :id")
+                .setParameter("fecha", fecha)
+                .setParameter("id", movimiento.getId())
+                .executeUpdate();
         entityManager.clear();
     }
 }

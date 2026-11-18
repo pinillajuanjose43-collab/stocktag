@@ -8,6 +8,8 @@ import com.stocktag.repository.EmpresaRepository;
 import com.stocktag.repository.MovimientoRepository;
 import com.stocktag.repository.ProductoRepository;
 import com.stocktag.security.UsuarioAutenticado;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +37,9 @@ public class InventarioService {
 
     /** Encabezados del reporte CSV, en español. */
     static final String ENCABEZADOS_CSV = "Código de barras;Nombre;Cantidad;Stock mínimo;Estado";
+
+    /** Movimientos por página en el historial. */
+    public static final int MOVIMIENTOS_POR_PAGINA = 25;
 
     /** BOM de UTF-8: hace que Excel reconozca las tildes al abrir el archivo. */
     private static final String BOM_UTF8 = "\uFEFF";
@@ -89,6 +98,57 @@ public class InventarioService {
     @Transactional(readOnly = true)
     public List<Producto> verificarAlertasStock() {
         return productoRepository.buscarConStockBajo(empresaActualId());
+    }
+
+    /**
+     * Alertas de stock bajo de la empresa autenticada (a partir de {@link #verificarAlertasStock()}),
+     * con las unidades que faltan para llegar al mínimo. Primero los agotados y luego el resto,
+     * cada grupo ordenado por nombre.
+     */
+    @Transactional(readOnly = true)
+    public List<AlertaStock> listarAlertasStock() {
+        return verificarAlertasStock().stream()
+                .map(AlertaStock::de)
+                .sorted(Comparator.comparing((AlertaStock a) -> !a.agotado()))
+                .toList();
+    }
+
+    /** Número de productos de la empresa autenticada con stock bajo (contador de la barra de navegación). */
+    @Transactional(readOnly = true)
+    public long contarAlertasStock() {
+        return productoRepository.contarConStockBajo(empresaActualId());
+    }
+
+    /**
+     * Historial de movimientos de la empresa autenticada, del más reciente al más antiguo,
+     * en páginas de {@value #MOVIMIENTOS_POR_PAGINA}. Todos los filtros son opcionales (null = sin filtro);
+     * {@code desde} y {@code hasta} incluyen el día completo.
+     *
+     * @param pagina número de página empezando en 1. Si se sale del rango se ajusta a la primera o la última.
+     * @throws InventarioException si {@code desde} es posterior a {@code hasta}
+     */
+    @Transactional(readOnly = true)
+    public Page<Movimiento> consultarMovimientos(TipoMovimiento tipo, LocalDate desde, LocalDate hasta, int pagina) {
+        if (desde != null && hasta != null && desde.isAfter(hasta)) {
+            throw new InventarioException("La fecha \"desde\" no puede ser posterior a la fecha \"hasta\".");
+        }
+        Long empresaId = empresaActualId();
+        LocalDateTime inicio = desde != null ? desde.atStartOfDay() : null;
+        LocalDateTime fin = hasta != null ? hasta.atTime(LocalTime.MAX) : null;
+
+        int indice = Math.max(pagina, 1) - 1;
+        Page<Movimiento> resultado = movimientoRepository.buscarHistorial(
+                empresaId, tipo, inicio, fin, PageRequest.of(indice, MOVIMIENTOS_POR_PAGINA));
+        if (indice > 0 && indice >= resultado.getTotalPages() && resultado.getTotalPages() > 0) {
+            resultado = movimientoRepository.buscarHistorial(
+                    empresaId, tipo, inicio, fin, PageRequest.of(resultado.getTotalPages() - 1, MOVIMIENTOS_POR_PAGINA));
+        }
+        return resultado;
+    }
+
+    /** Nombre del archivo de descarga del reporte: {@code stocktag-inventario-AAAA-MM-DD.csv} (fecha de hoy). */
+    public String nombreArchivoReporte() {
+        return "stocktag-inventario-" + LocalDate.now() + ".csv";
     }
 
     /**

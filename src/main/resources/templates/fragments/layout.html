@@ -36,21 +36,25 @@
 <body>
 
 <nav th:fragment="navbar" class="navbar navbar-expand border-bottom bg-body-tertiary py-1" aria-label="Navegación principal">
-    <div class="container-fluid gap-2">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold"
+    <div class="container-fluid gap-1 gap-sm-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold me-0 me-sm-2" aria-label="StockTag"
            th:href="${#authorization.expression('hasRole(''ADMIN_PLATAFORMA'')')} ? @{/admin} : @{/}">
             <i class="bi bi-upc-scan" aria-hidden="true"></i>
-            <span>StockTag</span>
+            <span class="d-none d-sm-inline">StockTag</span>
         </a>
 
-        <!-- Secciones del inventario. Cada controller pone "seccion" en el modelo para marcar la activa. -->
-        <ul sec:authorize="hasRole('EMPRESA')" class="navbar-nav gap-1">
+        <!--
+          Secciones del inventario. Cada controller pone "seccion" en el modelo para marcar la activa.
+          Por debajo de md (768 px) quedan solo con ícono (área táctil de 44x44 px y aria-label); así
+          las cuatro secciones, el tema y Salir caben en una fila desde 360 px sin scroll horizontal.
+        -->
+        <ul sec:authorize="hasRole('EMPRESA')" class="navbar-nav gap-0 gap-sm-1">
             <li class="nav-item">
                 <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/}"
                    th:classappend="${seccion == 'inicio'} ? 'active fw-medium'"
                    th:aria-current="${seccion == 'inicio'} ? 'page'" aria-label="Escanear">
                     <i class="bi bi-upc" aria-hidden="true"></i>
-                    <span class="d-none d-sm-inline">Escanear</span>
+                    <span class="d-none d-md-inline">Escanear</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -58,15 +62,43 @@
                    th:classappend="${seccion == 'productos'} ? 'active fw-medium'"
                    th:aria-current="${seccion == 'productos'} ? 'page'" aria-label="Productos">
                     <i class="bi bi-list-ul" aria-hidden="true"></i>
-                    <span class="d-none d-sm-inline">Productos</span>
+                    <span class="d-none d-md-inline">Productos</span>
+                </a>
+            </li>
+            <!--
+              Contador de alertas: número visible (texto, no solo color) y nombre accesible con la frase
+              completa ("Alertas: 3 productos con stock bajo"). Sin contador cuando no hay alertas.
+              totalAlertas lo pone NavegacionAdvice en las vistas de inventario.
+            -->
+            <li class="nav-item"
+                th:with="hayAlertas=${totalAlertas != null and totalAlertas > 0}">
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/alertas}"
+                   th:classappend="${seccion == 'alertas'} ? 'active fw-medium'"
+                   th:aria-current="${seccion == 'alertas'} ? 'page'"
+                   th:aria-label="${hayAlertas}
+                        ? 'Alertas: ' + ${totalAlertas} + (${totalAlertas == 1} ? ' producto con stock bajo' : ' productos con stock bajo')
+                        : 'Alertas: ningún producto con stock bajo'"
+                   aria-label="Alertas">
+                    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                    <span class="d-none d-md-inline">Alertas</span>
+                    <span th:if="${hayAlertas}" class="badge rounded-pill contador-alertas cifra"
+                          th:text="${totalAlertas > 99} ? '99+' : ${totalAlertas}">3</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/movimientos}"
+                   th:classappend="${seccion == 'movimientos'} ? 'active fw-medium'"
+                   th:aria-current="${seccion == 'movimientos'} ? 'page'" aria-label="Movimientos">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i>
+                    <span class="d-none d-md-inline">Movimientos</span>
                 </a>
             </li>
         </ul>
 
         <div class="d-flex align-items-center gap-2 ms-auto">
-            <div sec:authorize="isAuthenticated()" class="d-none d-sm-flex flex-column text-end lh-sm me-1">
-                <span class="fw-medium" sec:authentication="name">usuario</span>
-                <small class="text-body-secondary"
+            <div sec:authorize="isAuthenticated()" class="d-none d-lg-flex flex-column text-end lh-sm me-1 usuario-barra">
+                <span class="fw-medium text-truncate" sec:authentication="name">usuario</span>
+                <small class="text-body-secondary text-truncate"
                        th:text="${#authentication.principal.nombreEmpresa} ?: 'Administrador de plataforma'">Empresa</small>
             </div>
 
@@ -77,9 +109,10 @@
             </button>
 
             <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="m-0">
-                <button type="submit" class="btn btn-barra d-flex align-items-center gap-2 btn-icono">
+                <button type="submit" class="btn btn-barra d-flex align-items-center gap-2 btn-icono"
+                        aria-label="Salir" title="Salir">
                     <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-                    <span>Salir</span>
+                    <span class="d-none d-sm-inline">Salir</span>
                 </button>
             </form>
         </div>

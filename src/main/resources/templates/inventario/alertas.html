@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Alertas')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-0">Alertas de stock</h1>
+            <p th:unless="${#lists.isEmpty(alertas)}" class="text-body-secondary small mb-0">
+                <span class="cifra" th:text="${totalAgotados}">0</span>
+                <span th:text="${totalAgotados == 1} ? 'agotado' : 'agotados'">agotados</span>,
+                <span class="cifra" th:text="${totalStockBajo}">0</span> con stock bajo
+            </p>
+            <p th:if="${#lists.isEmpty(alertas)}" class="text-body-secondary small mb-0">
+                Productos con cantidad igual o menor a su stock mínimo
+            </p>
+        </div>
+        <a th:replace="~{fragments/inventario :: descargarCsv}"></a>
+    </div>
+
+    <div th:replace="~{fragments/inventario :: mensajes}"></div>
+
+    <!-- Estado vacío: ningún producto en o por debajo de su stock mínimo -->
+    <div th:if="${#lists.isEmpty(alertas)}" class="border rounded p-4 text-center">
+        <i class="bi bi-check-circle fs-3 d-block mb-2 text-success-emphasis" aria-hidden="true"></i>
+        <h2 class="h6">No hay alertas de stock</h2>
+        <p class="text-body-secondary mb-3">Todos los productos están por encima de su stock mínimo.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a th:href="@{/productos}" class="btn btn-barra d-inline-flex align-items-center gap-2">
+                <i class="bi bi-list-ul" aria-hidden="true"></i> Ver productos
+            </a>
+            <a th:href="@{/}" class="btn btn-barra d-inline-flex align-items-center gap-2">
+                <i class="bi bi-upc-scan" aria-hidden="true"></i> Ir a escanear
+            </a>
+        </div>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(alertas)}" class="table-responsive border rounded tabla-productos">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <caption class="visually-hidden">
+                Productos con alerta de stock: primero los agotados y luego los de stock bajo, ordenados por nombre
+            </caption>
+            <thead class="sticky-top">
+            <tr>
+                <th scope="col" class="ps-3 d-none d-md-table-cell">Código</th>
+                <th scope="col" class="ps-3 ps-md-2">Nombre</th>
+                <th scope="col" class="text-end">
+                    <span class="d-none d-md-inline">Cantidad</span><abbr class="d-md-none" title="Cantidad">Cant.</abbr>
+                </th>
+                <th scope="col" class="text-end">
+                    <span class="d-none d-md-inline">Stock mínimo</span><abbr class="d-md-none" title="Stock mínimo">Mín.</abbr>
+                </th>
+                <th scope="col" class="text-end pe-3 pe-sm-2">
+                    <span class="d-none d-md-inline">Faltan para el mínimo</span><abbr class="d-md-none" title="Faltan para el mínimo">Faltan</abbr>
+                </th>
+                <th scope="col" class="d-none d-sm-table-cell">Estado</th>
+                <th scope="col" class="text-end pe-3 d-none d-sm-table-cell"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="a : ${alertas}" th:with="p=${a.producto}"
+                th:classappend="${a.agotado()} ? 'fila-agotado' : 'fila-stock-bajo'">
+                <td class="ps-3 font-monospace small text-nowrap d-none d-md-table-cell" th:text="${p.codigoBarras}">7701</td>
+                <td class="ps-3 ps-md-2 col-nombre">
+                    <a th:href="@{/(codigo=${p.codigoBarras})}" class="link-body-emphasis text-break"
+                       th:text="${p.nombre}">Producto</a>
+                    <span class="d-block d-md-none font-monospace small text-body-secondary" th:text="${p.codigoBarras}">7701</span>
+                    <!-- En teléfono el estado va debajo del nombre para que la tabla quepa sin scroll horizontal -->
+                    <span class="d-block d-sm-none mt-1"><span th:replace="~{fragments/inventario :: estado(${p})}"></span></span>
+                </td>
+                <td class="text-end cifra fw-semibold" th:text="${p.cantidad}">0</td>
+                <td class="text-end cifra text-body-secondary" th:text="${p.stockMinimo}">0</td>
+                <td class="text-end cifra fw-semibold pe-3 pe-sm-2 faltan" th:text="${a.unidadesFaltantes}">0</td>
+                <td class="text-nowrap d-none d-sm-table-cell"><span th:replace="~{fragments/inventario :: estado(${p})}"></span></td>
+                <td class="text-end pe-3 d-none d-sm-table-cell">
+                    <a th:href="@{/(codigo=${p.codigoBarras})}"
+                       class="btn btn-barra btn-sm d-inline-flex align-items-center gap-1 text-nowrap"
+                       th:aria-label="'Registrar entrada de ' + ${p.nombre}">
+                        <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i>
+                        <span class="d-none d-md-inline">Reponer</span>
+                    </a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

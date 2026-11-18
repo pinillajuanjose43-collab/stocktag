@@ -120,7 +120,7 @@
                         Stock bajo
                         <span class="badge rounded-pill text-bg-secondary cifra" th:text="${#lists.size(alertas)}">0</span>
                     </h2>
-                    <a th:if="${!#lists.isEmpty(alertas)}" th:href="@{/productos(filtro='bajo')}" class="small d-inline-block py-2">Ver todos</a>
+                    <a th:if="${!#lists.isEmpty(alertas)}" th:href="@{/alertas}" class="small d-inline-block py-2">Ver alertas</a>
                 </div>
 
                 <div th:if="${#lists.isEmpty(alertas)}" class="p-3 text-center text-body-secondary small">
