@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Nuevo producto')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="formulario-contenedor">
+        <div class="mb-3">
+            <h1 class="h4 mb-0">Nuevo producto</h1>
+            <p class="text-body-secondary small mb-0">Los campos marcados con * son obligatorios.</p>
+        </div>
+
+        <!-- Errores del service (por ejemplo, código duplicado): alerta en la vista, nunca página de error -->
+        <div th:replace="~{fragments/inventario :: mensajes}"></div>
+
+        <!--
+          novalidate: la validación la hace el servidor (anotaciones del formulario) para que los
+          mensajes salgan siempre en español junto a cada campo. El foco va al primer campo con error,
+          o al campo del código si el service lo rechazó; si no hay errores, al primer campo vacío.
+        -->
+        <form th:action="@{/productos}" th:object="${productoForm}" method="post" novalidate
+              class="border rounded p-3">
+            <div th:with="errCodigo=${#fields.hasErrors('codigoBarras')},
+                          errNombre=${#fields.hasErrors('nombre')},
+                          errMinimo=${#fields.hasErrors('stockMinimo')},
+                          errInicial=${#fields.hasErrors('stockInicial')},
+                          foco=${errCodigo or error != null} ? 'codigoBarras' :
+                               (${errNombre} ? 'nombre' :
+                               (${errMinimo} ? 'stockMinimo' :
+                               (${errInicial} ? 'stockInicial' :
+                               (${#strings.isEmpty(productoForm.codigoBarras)} ? 'codigoBarras' : 'nombre'))))">
+
+                <div class="mb-3">
+                    <label for="codigoBarras" class="form-label">Código de barras *</label>
+                    <input type="text" th:field="*{codigoBarras}" th:errorclass="is-invalid"
+                           class="form-control font-monospace" maxlength="64" required
+                           autocomplete="off" autocapitalize="none" spellcheck="false"
+                           th:autofocus="${foco == 'codigoBarras'}"
+                           th:aria-invalid="${errCodigo} ? 'true'"
+                           th:aria-describedby="${errCodigo} ? 'codigoBarras-error'">
+                    <div th:if="${errCodigo}" id="codigoBarras-error" class="invalid-feedback"
+                         th:errors="*{codigoBarras}">Error</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre *</label>
+                    <input type="text" th:field="*{nombre}" th:errorclass="is-invalid"
+                           class="form-control" maxlength="120" required autocomplete="off"
+                           th:autofocus="${foco == 'nombre'}"
+                           th:aria-invalid="${errNombre} ? 'true'"
+                           th:aria-describedby="${errNombre} ? 'nombre-error'">
+                    <div th:if="${errNombre}" id="nombre-error" class="invalid-feedback"
+                         th:errors="*{nombre}">Error</div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label for="stockMinimo" class="form-label">Stock mínimo *</label>
+                        <input type="number" th:field="*{stockMinimo}" th:errorclass="is-invalid"
+                               class="form-control cifra" min="0" max="1000000" step="1" inputmode="numeric" required
+                               th:autofocus="${foco == 'stockMinimo'}"
+                               th:aria-invalid="${errMinimo} ? 'true'"
+                               th:aria-describedby="${errMinimo} ? 'stockMinimo-ayuda stockMinimo-error' : 'stockMinimo-ayuda'">
+                        <div id="stockMinimo-ayuda" class="form-text">Alerta cuando la cantidad llegue a este valor.</div>
+                        <div th:if="${errMinimo}" id="stockMinimo-error" class="invalid-feedback d-block"
+                             th:errors="*{stockMinimo}">Error</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="stockInicial" class="form-label">Stock inicial</label>
+                        <input type="number" th:field="*{stockInicial}" th:errorclass="is-invalid"
+                               class="form-control cifra" min="0" max="1000000" step="1" inputmode="numeric"
+                               th:autofocus="${foco == 'stockInicial'}"
+                               th:aria-invalid="${errInicial} ? 'true'"
+                               th:aria-describedby="${errInicial} ? 'stockInicial-ayuda stockInicial-error' : 'stockInicial-ayuda'">
+                        <div id="stockInicial-ayuda" class="form-text">Opcional. Se registra como una entrada.</div>
+                        <div th:if="${errInicial}" id="stockInicial-error" class="invalid-feedback d-block"
+                             th:errors="*{stockInicial}">Error</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i> Guardar producto
+                    </button>
+                    <a th:href="@{/}" class="btn btn-barra">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

@@ -198,6 +198,44 @@ class InventarioServiceTest {
     }
 
     @Test
+    void crearProductoConStockInicialLoRegistraComoEntrada() {
+        iniciarSesionComo(ferreteria);
+
+        Producto brocha = inventarioService.crearProducto("8801", "Brocha 2 pulgadas", 3, 12);
+
+        sincronizar();
+        assertThat(productoRepository.findById(brocha.getId()).orElseThrow().getCantidad()).isEqualTo(12);
+        assertThat(movimientoRepository.findByProductoIdAndProductoEmpresaIdOrderByFechaDesc(brocha.getId(), ferreteria.getId()))
+                .singleElement()
+                .satisfies(m -> {
+                    assertThat(m.getTipo()).isEqualTo(TipoMovimiento.ENTRADA);
+                    assertThat(m.getCantidad()).isEqualTo(12);
+                });
+    }
+
+    @Test
+    void crearProductoSinStockInicialNoRegistraMovimientos() {
+        iniciarSesionComo(ferreteria);
+
+        Producto brocha = inventarioService.crearProducto("8801", "Brocha", 3, null);
+        Producto lija = inventarioService.crearProducto("8802", "Lija", 3, 0);
+
+        assertThat(brocha.getCantidad()).isZero();
+        assertThat(lija.getCantidad()).isZero();
+        assertThat(movimientoRepository.findByProductoEmpresaIdOrderByFechaDesc(ferreteria.getId())).isEmpty();
+    }
+
+    @Test
+    void stockInicialNegativoSeRechazaSinCrearElProducto() {
+        iniciarSesionComo(ferreteria);
+
+        assertThatThrownBy(() -> inventarioService.crearProducto("8801", "Brocha", 3, -1))
+                .isInstanceOf(InventarioException.class)
+                .hasMessage("El stock inicial no puede ser negativo.");
+        assertThat(inventarioService.consultarStock()).isEmpty();
+    }
+
+    @Test
     void laBaseDeDatosImpideCodigoRepetidoEnLaMismaEmpresa() {
         productoRepository.saveAndFlush(new Producto("9999", "Uno", 0, ferreteria));
         productoRepository.saveAndFlush(new Producto("9999", "Mismo código, otra empresa", 0, papeleria));

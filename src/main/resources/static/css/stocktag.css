@@ -43,3 +43,70 @@
 .login-contenedor {
     max-width: 24rem;
 }
+
+/* ---------------------------------------------------------------------------------
+ * Vistas de inventario
+ * --------------------------------------------------------------------------------- */
+
+/* Cifras con ancho fijo (tabular) para que las columnas numéricas queden alineadas. */
+.cifra {
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Filas resaltadas por estado de stock. Se redefine la variable de fondo de la tabla
+ * con los colores "subtle" de Bootstrap, que cambian solos entre tema claro y oscuro
+ * (table-warning / table-danger usan colores fijos y se ven mal en tema oscuro).
+ * El color nunca va solo: la columna Estado siempre muestra el texto y un ícono.
+ */
+.fila-stock-bajo {
+    --bs-table-bg: var(--bs-warning-bg-subtle);
+}
+
+.fila-agotado {
+    --bs-table-bg: var(--bs-danger-bg-subtle);
+}
+
+/* Insignia de estado: tamaño de texto legible y sin cortes de línea. */
+.estado {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Tablas con scroll propio y encabezado fijo (sticky-top) para listas largas. */
+.tabla-productos {
+    max-height: 70vh;
+}
+
+.tabla-alertas {
+    max-height: 22rem;
+}
+
+/* Permite que el texto largo se corte dentro de un contenedor flex. */
+.min-w-0 {
+    min-width: 0;
+}
+
+/* Formulario de producto: ancho cómodo de lectura. */
+.formulario-contenedor {
+    max-width: 36rem;
+}
+
+/* Enlaces de sección de la barra: en pantallas pequeñas quedan solo con ícono, área táctil de 44x44 px. */
+.nav-seccion {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    justify-content: center;
+}
+
+/* Columna de nombre: ancho mínimo para que no se parta palabra por palabra en pantallas pequeñas. */
+.tabla-productos .col-nombre {
+    min-width: 9rem;
+}
+
+/* Abreviaturas de encabezado (Cant., Mín.): sin el subrayado punteado del navegador. */
+.tabla-productos abbr[title] {
+    text-decoration: none;
+    cursor: help;
+}

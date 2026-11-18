@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--
+  Fragmentos compartidos por las vistas de inventario.
+    <div th:replace="~{fragments/inventario :: mensajes}"></div>
+    <span th:replace="~{fragments/inventario :: estado(${producto})}"></span>
+-->
+<body>
+
+<!-- Mensajes de éxito y error (flash o modelo). Texto + ícono, nunca solo color. -->
+<div th:fragment="mensajes" th:remove="tag">
+    <div th:if="${exito}" class="alert alert-success d-flex align-items-start gap-2 py-2 mb-3" role="status">
+        <i class="bi bi-check-circle flex-shrink-0 mt-1" aria-hidden="true"></i>
+        <div th:text="${exito}">Movimiento registrado.</div>
+    </div>
+    <div th:if="${error}" class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3" role="alert">
+        <i class="bi bi-exclamation-octagon flex-shrink-0 mt-1" aria-hidden="true"></i>
+        <div th:text="${error}">No se pudo completar la acción.</div>
+    </div>
+</div>
+
+<!-- Estado de stock de un producto: Agotado (0), Stock bajo (cantidad <= mínimo) u OK. -->
+<span th:fragment="estado(producto)" th:remove="tag">
+    <span th:if="${producto.cantidad == 0}"
+          class="badge rounded-pill bg-danger-subtle text-danger-emphasis border border-danger-subtle estado">
+        <i class="bi bi-x-octagon" aria-hidden="true"></i> Agotado
+    </span>
+    <span th:if="${producto.cantidad > 0 and producto.tieneStockBajo()}"
+          class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle estado">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Stock bajo
+    </span>
+    <span th:unless="${producto.tieneStockBajo()}"
+          class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle estado">
+        <i class="bi bi-check-circle" aria-hidden="true"></i> OK
+    </span>
+</span>
+
+</body>
+</html>
