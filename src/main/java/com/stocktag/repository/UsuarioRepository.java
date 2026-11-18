@@ -11,4 +11,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByUsername(String username);
 
     boolean existsByRol(Rol rol);
+
+    /** "Tienda" y "tienda" cuentan como el mismo usuario para evitar confusiones al iniciar sesión. */
+    boolean existsByUsernameIgnoreCase(String username);
 }

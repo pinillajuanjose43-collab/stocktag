@@ -169,3 +169,57 @@
     max-width: 14rem;
     min-width: 0;
 }
+
+/* ---------------------------------------------------------------------------------
+ * Panel de administración (/admin)
+ * --------------------------------------------------------------------------------- */
+
+.tabla-empresas {
+    max-height: 70vh;
+}
+
+.tabla-empresas .col-nombre {
+    min-width: 9rem;
+}
+
+.tabla-empresas abbr[title] {
+    text-decoration: none;
+    cursor: help;
+}
+
+/*
+ * Botón "Desactivar": acción destructiva con el color de peligro de Bootstrap en su versión
+ * "emphasis" (btn-outline-danger no alcanza 4.5:1 de contraste en tema oscuro).
+ */
+.btn-peligro {
+    --bs-btn-color: var(--bs-danger-text-emphasis);
+    --bs-btn-border-color: var(--bs-danger-border-subtle);
+    --bs-btn-hover-color: var(--bs-danger-text-emphasis);
+    --bs-btn-hover-bg: var(--bs-danger-bg-subtle);
+    --bs-btn-hover-border-color: var(--bs-danger-text-emphasis);
+    --bs-btn-active-color: var(--bs-danger-text-emphasis);
+    --bs-btn-active-bg: var(--bs-danger-bg-subtle);
+    --bs-btn-active-border-color: var(--bs-danger-text-emphasis);
+}
+
+/* En teléfono los botones de la tabla quedan solo con ícono: área táctil de 44x44 px. */
+@media (max-width: 575.98px) {
+    .btn-accion {
+        min-width: 2.75rem;
+        justify-content: center;
+    }
+}
+
+/* Confirmación de desactivar y la fila a la que se refiere, con los colores "subtle" del tema. */
+.panel-confirmar {
+    background-color: var(--bs-danger-bg-subtle);
+}
+
+.panel-confirmar:focus {
+    outline: 2px solid var(--bs-danger-text-emphasis);
+    outline-offset: 2px;
+}
+
+.fila-confirmando {
+    --bs-table-bg: var(--bs-danger-bg-subtle);
+}

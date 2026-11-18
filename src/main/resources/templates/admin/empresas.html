@@ -1,20 +1,140 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Gestión de empresas')}"></head>
+<head th:replace="~{fragments/layout :: head('Empresas')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container-fluid py-3">
     <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
         <div>
-            <h1 class="h4 mb-0">Gestión de empresas</h1>
-            <p class="text-body-secondary small mb-0">Registra empresas y activa o desactiva su acceso.</p>
+            <h1 class="h4 mb-0">Empresas</h1>
+            <p class="text-body-secondary small mb-0" th:unless="${#lists.isEmpty(empresas)}">
+                <span class="cifra" th:text="${#lists.size(empresas)}">0</span>
+                <span th:text="${#lists.size(empresas) == 1} ? 'empresa' : 'empresas'">empresas</span>:
+                <span class="cifra" th:text="${totalActivas}">0</span>
+                <span th:text="${totalActivas == 1} ? 'activa' : 'activas'">activas</span>,
+                <span class="cifra" th:text="${#lists.size(empresas) - totalActivas}">0</span>
+                <span th:text="${#lists.size(empresas) - totalActivas == 1} ? 'desactivada' : 'desactivadas'">desactivadas</span>
+            </p>
         </div>
+        <a th:href="@{/admin/empresas/nueva}" class="btn btn-success btn-sm btn-tactil d-flex align-items-center gap-1">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva empresa
+        </a>
     </div>
 
-    <div class="border rounded p-4 text-center text-body-secondary">
-        <i class="bi bi-buildings fs-3 d-block mb-2" aria-hidden="true"></i>
-        <p class="mb-0">Todavía no hay empresas registradas. Esta sección está en construcción.</p>
+    <div th:replace="~{fragments/inventario :: mensajes}"></div>
+
+    <!--
+      Confirmación de desactivar, en la misma página y sin JavaScript (GET /admin?confirmar=<id>).
+      Recibe el foco al cargar para que el lector de pantalla lea la pregunta; Cancelar no cambia nada.
+    -->
+    <section th:if="${porDesactivar}" id="confirmar-desactivar" tabindex="-1" autofocus
+             class="panel-confirmar border border-danger-subtle rounded p-3 mb-3"
+             aria-labelledby="confirmar-titulo">
+        <div class="d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-octagon text-danger-emphasis fs-5 lh-1 flex-shrink-0" aria-hidden="true"></i>
+            <div class="min-w-0">
+                <h2 id="confirmar-titulo" class="h6 mb-1 text-danger-emphasis text-break"
+                    th:text="'¿Desactivar ' + ${porDesactivar.nombre} + '?'">¿Desactivar Tienda?</h2>
+                <p class="small mb-2">
+                    <span th:if="${porDesactivar.username}">
+                        El usuario <span class="font-monospace fw-medium" th:text="${porDesactivar.username}">tienda</span>
+                        no podrá iniciar sesión y, si tiene una sesión abierta, perderá el acceso en su siguiente acción.
+                    </span>
+                    <span th:unless="${porDesactivar.username}">Ningún usuario de esta empresa podrá iniciar sesión.</span>
+                    Su inventario se conserva y puedes volver a activarla cuando quieras.
+                </p>
+                <form th:action="@{/admin/empresas/{id}/desactivar(id=${porDesactivar.id})}" method="post"
+                      class="d-flex flex-wrap gap-2 m-0">
+                    <button type="submit" class="btn btn-danger btn-sm btn-tactil d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-slash-circle" aria-hidden="true"></i> Sí, desactivar
+                    </button>
+                    <a th:href="@{/admin}" class="btn btn-barra btn-sm btn-tactil d-inline-flex align-items-center">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Estado vacío: todavía no hay empresas -->
+    <div th:if="${#lists.isEmpty(empresas)}" class="border rounded p-4 text-center">
+        <i class="bi bi-buildings fs-3 d-block mb-2 text-body-secondary" aria-hidden="true"></i>
+        <h2 class="h6">Todavía no hay empresas registradas</h2>
+        <p class="text-body-secondary mb-3">
+            Registra la primera empresa con su usuario y contraseña para que pueda entrar a su inventario.
+        </p>
+        <a th:href="@{/admin/empresas/nueva}" class="btn btn-success d-inline-flex align-items-center gap-2">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Registrar empresa
+        </a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(empresas)}" class="table-responsive border rounded tabla-empresas">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <caption class="visually-hidden">Empresas registradas, ordenadas por nombre</caption>
+            <thead class="sticky-top">
+            <tr>
+                <th scope="col" class="ps-3">Empresa</th>
+                <th scope="col" class="d-none d-md-table-cell">NIT</th>
+                <th scope="col" class="d-none d-md-table-cell">Usuario</th>
+                <th scope="col" class="d-none d-sm-table-cell">Fecha de alta</th>
+                <th scope="col" class="text-end">
+                    <span class="d-none d-md-inline">Productos</span><abbr class="d-md-none" title="Productos">Prod.</abbr>
+                </th>
+                <th scope="col">Estado</th>
+                <th scope="col" class="text-end pe-3"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${empresas}" th:id="'empresa-' + ${e.id}"
+                th:classappend="${porDesactivar != null and porDesactivar.id == e.id} ? 'fila-confirmando'">
+                <td class="ps-3 col-nombre">
+                    <span class="fw-medium text-break" th:classappend="${!e.activa} ? 'text-body-secondary'"
+                          th:text="${e.nombre}">Tienda La Esquina</span>
+                    <!-- En pantallas pequeñas NIT y usuario van debajo del nombre en vez de ocupar columnas -->
+                    <span class="d-block d-md-none small text-body-secondary text-break">
+                        <span class="font-monospace" th:text="${e.nit}">900555666-1</span>
+                        <span aria-hidden="true">·</span>
+                        <span class="font-monospace" th:text="${e.username} ?: 'sin usuario'">tienda</span>
+                    </span>
+                </td>
+                <td class="d-none d-md-table-cell font-monospace small text-nowrap" th:text="${e.nit}">900555666-1</td>
+                <td class="d-none d-md-table-cell font-monospace small text-break" th:text="${e.username} ?: 'sin usuario'">tienda</td>
+                <td class="d-none d-sm-table-cell cifra text-nowrap">
+                    <time th:datetime="${e.fechaAlta}" th:text="${#temporals.format(e.fechaAlta, 'dd/MM/yyyy')}">18/11/2026</time>
+                </td>
+                <td class="text-end cifra" th:text="${e.totalProductos}">8</td>
+                <td class="text-nowrap">
+                    <span th:if="${e.activa}"
+                          class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle estado">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i> Activa
+                    </span>
+                    <span th:unless="${e.activa}"
+                          class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle estado">
+                        <i class="bi bi-slash-circle" aria-hidden="true"></i> Desactivada
+                    </span>
+                </td>
+                <td class="text-end pe-3">
+                    <!-- Desactivar no actúa de inmediato: abre la confirmación de arriba -->
+                    <a th:if="${e.activa}"
+                       th:href="@{/admin(confirmar=${e.id})} + '#confirmar-desactivar'"
+                       class="btn btn-peligro btn-sm btn-tactil btn-accion d-inline-flex align-items-center gap-1 text-nowrap"
+                       th:aria-label="'Desactivar ' + ${e.nombre}" title="Desactivar">
+                        <i class="bi bi-slash-circle" aria-hidden="true"></i>
+                        <span class="d-none d-sm-inline">Desactivar</span>
+                    </a>
+                    <!-- Activar no es destructivo: se hace directamente -->
+                    <form th:unless="${e.activa}" th:action="@{/admin/empresas/{id}/activar(id=${e.id})}"
+                          method="post" class="d-inline m-0">
+                        <button type="submit"
+                                class="btn btn-barra btn-sm btn-tactil btn-accion d-inline-flex align-items-center gap-1 text-nowrap"
+                                th:aria-label="'Activar ' + ${e.nombre}" title="Activar">
+                            <i class="bi bi-check-circle" aria-hidden="true"></i>
+                            <span class="d-none d-sm-inline">Activar</span>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 </main>
 </body>
