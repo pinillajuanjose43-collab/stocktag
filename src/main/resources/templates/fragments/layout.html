@@ -43,6 +43,26 @@
             <span>StockTag</span>
         </a>
 
+        <!-- Secciones del inventario. Cada controller pone "seccion" en el modelo para marcar la activa. -->
+        <ul sec:authorize="hasRole('EMPRESA')" class="navbar-nav gap-1">
+            <li class="nav-item">
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/}"
+                   th:classappend="${seccion == 'inicio'} ? 'active fw-medium'"
+                   th:aria-current="${seccion == 'inicio'} ? 'page'" aria-label="Escanear">
+                    <i class="bi bi-upc" aria-hidden="true"></i>
+                    <span class="d-none d-sm-inline">Escanear</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/productos}"
+                   th:classappend="${seccion == 'productos'} ? 'active fw-medium'"
+                   th:aria-current="${seccion == 'productos'} ? 'page'" aria-label="Productos">
+                    <i class="bi bi-list-ul" aria-hidden="true"></i>
+                    <span class="d-none d-sm-inline">Productos</span>
+                </a>
+            </li>
+        </ul>
+
         <div class="d-flex align-items-center gap-2 ms-auto">
             <div sec:authorize="isAuthenticated()" class="d-none d-sm-flex flex-column text-end lh-sm me-1">
                 <span class="fw-medium" sec:authentication="name">usuario</span>

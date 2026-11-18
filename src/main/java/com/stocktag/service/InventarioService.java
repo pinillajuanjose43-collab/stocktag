@@ -141,6 +141,21 @@ public class InventarioService {
         return productoRepository.save(new Producto(codigo, nombre.trim(), stockMinimo, empresa));
     }
 
+    /**
+     * Crea el producto y, si {@code stockInicial} es mayor que cero, registra esa cantidad
+     * como una ENTRADA. Todo ocurre en la misma transacción: si algo falla, no se crea nada.
+     */
+    public Producto crearProducto(String codigoBarras, String nombre, int stockMinimo, Integer stockInicial) {
+        if (stockInicial != null && stockInicial < 0) {
+            throw new InventarioException("El stock inicial no puede ser negativo.");
+        }
+        Producto producto = crearProducto(codigoBarras, nombre, stockMinimo);
+        if (stockInicial != null && stockInicial > 0) {
+            registrarMovimiento(producto.getId(), TipoMovimiento.ENTRADA, stockInicial);
+        }
+        return producto;
+    }
+
     private Producto buscarProductoDeLaEmpresa(Long productoId) {
         if (productoId == null) {
             throw new ProductoNoEncontradoException();

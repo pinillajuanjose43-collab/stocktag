@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Productos')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-0">Productos</h1>
+            <p class="text-body-secondary small mb-0">
+                <span class="cifra" th:text="${totalProductos}">0</span> productos,
+                <span class="cifra" th:text="${totalStockBajo}">0</span> con stock bajo
+            </p>
+        </div>
+        <a th:href="@{/productos/nuevo}" class="btn btn-success btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+        </a>
+    </div>
+
+    <div th:replace="~{fragments/inventario :: mensajes}"></div>
+
+    <!-- Filtro: todos / solo stock bajo (se refleja en la URL, se puede compartir o volver atrás) -->
+    <nav th:if="${totalProductos > 0}" class="mb-2" aria-label="Filtrar productos">
+        <ul class="nav nav-pills gap-1">
+            <li class="nav-item">
+                <a class="nav-link py-1 px-3" th:href="@{/productos}"
+                   th:classappend="${!soloBajo} ? 'active'" th:aria-current="${!soloBajo} ? 'page'">
+                    Todos <span class="cifra" th:text="${totalProductos}">0</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link py-1 px-3" th:href="@{/productos(filtro='bajo')}"
+                   th:classappend="${soloBajo} ? 'active'" th:aria-current="${soloBajo} ? 'page'">
+                    Stock bajo <span class="cifra" th:text="${totalStockBajo}">0</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Estado vacío: la empresa todavía no tiene productos -->
+    <div th:if="${totalProductos == 0}" class="border rounded p-4 text-center">
+        <i class="bi bi-box-seam fs-3 d-block mb-2 text-body-secondary" aria-hidden="true"></i>
+        <h2 class="h6">Todavía no tienes productos</h2>
+        <p class="text-body-secondary mb-3">
+            Créalos uno por uno o escanea un código en la pantalla de escaneo: si no existe, te ofrecemos crearlo.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a th:href="@{/productos/nuevo}" class="btn btn-success d-inline-flex align-items-center gap-2">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear producto
+            </a>
+            <a th:href="@{/}" class="btn btn-barra d-inline-flex align-items-center gap-2">
+                <i class="bi bi-upc-scan" aria-hidden="true"></i> Ir a escanear
+            </a>
+        </div>
+    </div>
+
+    <!-- Estado vacío del filtro: hay productos pero ninguno con stock bajo -->
+    <div th:if="${totalProductos > 0 and #lists.isEmpty(productos)}"
+         class="border rounded p-4 text-center text-body-secondary">
+        <i class="bi bi-check-circle fs-3 d-block mb-2 text-success-emphasis" aria-hidden="true"></i>
+        <p class="mb-2">Ningún producto tiene stock bajo.</p>
+        <a th:href="@{/productos}">Ver todos los productos</a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(productos)}" class="table-responsive border rounded tabla-productos">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <caption class="visually-hidden"
+                     th:text="${soloBajo} ? 'Productos con stock bajo, ordenados por nombre' : 'Productos del inventario, ordenados por nombre'">
+                Productos del inventario
+            </caption>
+            <thead class="sticky-top">
+            <tr>
+                <th scope="col" class="ps-3 d-none d-md-table-cell">Código</th>
+                <th scope="col" class="ps-3 ps-md-2">Nombre</th>
+                <th scope="col" class="text-end">
+                    <span class="d-none d-md-inline">Cantidad</span><abbr class="d-md-none" title="Cantidad">Cant.</abbr>
+                </th>
+                <th scope="col" class="text-end">
+                    <span class="d-none d-md-inline">Stock mínimo</span><abbr class="d-md-none" title="Stock mínimo">Mín.</abbr>
+                </th>
+                <th scope="col">Estado</th>
+                <th scope="col" class="text-end pe-3 d-none d-sm-table-cell"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${productos}"
+                th:classappend="${p.cantidad == 0} ? 'fila-agotado' : (${p.tieneStockBajo()} ? 'fila-stock-bajo')">
+                <td class="ps-3 font-monospace small text-nowrap d-none d-md-table-cell" th:text="${p.codigoBarras}">7701</td>
+                <td class="ps-3 ps-md-2 col-nombre">
+                    <a th:href="@{/(codigo=${p.codigoBarras})}" class="link-body-emphasis text-break"
+                       th:text="${p.nombre}">Producto</a>
+                    <!-- En pantallas pequeñas el código va debajo del nombre en vez de ocupar una columna -->
+                    <span class="d-block d-md-none font-monospace small text-body-secondary" th:text="${p.codigoBarras}">7701</span>
+                </td>
+                <td class="text-end cifra fw-semibold" th:text="${p.cantidad}">0</td>
+                <td class="text-end cifra text-body-secondary" th:text="${p.stockMinimo}">0</td>
+                <td class="text-nowrap"><span th:replace="~{fragments/inventario :: estado(${p})}"></span></td>
+                <td class="text-end pe-3 d-none d-sm-table-cell">
+                    <a th:href="@{/(codigo=${p.codigoBarras})}"
+                       class="btn btn-barra btn-sm d-inline-flex align-items-center gap-1 text-nowrap"
+                       th:aria-label="'Registrar movimiento de ' + ${p.nombre}">
+                        <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                        <span class="d-none d-md-inline">Movimiento</span>
+                    </a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

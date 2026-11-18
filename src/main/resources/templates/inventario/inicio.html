@@ -1,20 +1,158 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Inventario')}"></head>
+<head th:replace="~{fragments/layout :: head('Escanear')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container-fluid py-3">
     <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
         <div>
-            <h1 class="h4 mb-0">Inventario</h1>
+            <h1 class="h4 mb-0">Escanear</h1>
             <p class="text-body-secondary small mb-0" th:text="${#authentication.principal.nombreEmpresa}">Empresa</p>
         </div>
+        <a th:href="@{/productos/nuevo}" class="btn btn-barra btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+        </a>
     </div>
 
-    <div class="border rounded p-4 text-center text-body-secondary">
-        <i class="bi bi-box-seam fs-3 d-block mb-2" aria-hidden="true"></i>
-        <p class="mb-0">Aquí verás tus productos, el escaneo y las alertas de stock. Esta sección está en construcción.</p>
+    <div th:replace="~{fragments/inventario :: mensajes}"></div>
+
+    <div class="row g-3">
+        <!-- Columna principal: escaneo y resultado -->
+        <div class="col-lg-7">
+            <!--
+              El lector USB/Bluetooth funciona como teclado: escribe el código y presiona Enter.
+              El input siempre llega vacío y con autofocus, también después de cada acción
+              (todas terminan en un redirect a esta página), así el siguiente escaneo no se mezcla.
+            -->
+            <form th:action="@{/}" method="get" class="border rounded p-3 mb-3" role="search">
+                <label for="codigo" class="form-label fw-medium mb-1">Código de barras</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text"><i class="bi bi-upc-scan" aria-hidden="true"></i></span>
+                    <input type="text" id="codigo" name="codigo" class="form-control font-monospace"
+                           autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"
+                           maxlength="64" required autofocus aria-describedby="codigo-ayuda">
+                    <button type="submit" class="btn btn-success">Buscar</button>
+                </div>
+                <div id="codigo-ayuda" class="form-text">Escanea con el lector o escribe el código y presiona Enter.</div>
+            </form>
+
+            <!-- Producto encontrado -->
+            <section th:if="${producto != null}" class="border rounded" aria-labelledby="producto-nombre">
+                <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 p-3 border-bottom">
+                    <div class="min-w-0">
+                        <h2 id="producto-nombre" class="h5 mb-1 text-break" th:text="${producto.nombre}">Producto</h2>
+                        <span class="font-monospace small text-body-secondary" th:text="${producto.codigoBarras}">7701</span>
+                    </div>
+                    <span th:replace="~{fragments/inventario :: estado(${producto})}"></span>
+                </div>
+
+                <dl class="row row-cols-2 g-0 m-0 border-bottom text-center">
+                    <div class="col p-2 border-end">
+                        <dt class="small fw-normal text-body-secondary">Stock actual</dt>
+                        <dd class="fs-2 fw-semibold cifra mb-0" th:text="${producto.cantidad}">0</dd>
+                    </div>
+                    <div class="col p-2">
+                        <dt class="small fw-normal text-body-secondary">Stock mínimo</dt>
+                        <dd class="fs-2 cifra mb-0 text-body-secondary" th:text="${producto.stockMinimo}">0</dd>
+                    </div>
+                </dl>
+
+                <form th:action="@{/movimientos}" method="post" class="p-3">
+                    <input type="hidden" name="productoId" th:value="${producto.id}">
+                    <input type="hidden" name="codigoBarras" th:value="${producto.codigoBarras}">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-sm-4">
+                            <label for="cantidad" class="form-label small mb-1">Cantidad</label>
+                            <input type="number" id="cantidad" name="cantidad" value="1" min="1" max="1000000"
+                                   step="1" inputmode="numeric" required class="form-control form-control-lg cifra">
+                        </div>
+                        <div class="col-6 col-sm-4 d-grid">
+                            <button type="submit" name="tipo" value="ENTRADA"
+                                    class="btn btn-success btn-lg d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Entrada
+                            </button>
+                        </div>
+                        <div class="col-6 col-sm-4 d-grid">
+                            <button type="submit" name="tipo" value="SALIDA"
+                                    class="btn btn-danger btn-lg d-flex align-items-center justify-content-center gap-2"
+                                    th:disabled="${producto.cantidad == 0}"
+                                    th:aria-describedby="${producto.cantidad == 0} ? 'salida-ayuda'">
+                                <i class="bi bi-box-arrow-up" aria-hidden="true"></i> Salida
+                            </button>
+                        </div>
+                    </div>
+                    <p th:if="${producto.cantidad == 0}" id="salida-ayuda" class="form-text mb-0">
+                        Sin unidades disponibles: registra una entrada antes de sacar producto.
+                    </p>
+                </form>
+            </section>
+
+            <!-- Código que no existe en esta empresa: ofrecer crearlo -->
+            <section th:if="${codigoBuscado != null and producto == null}"
+                     class="border border-warning-subtle rounded p-3 bg-warning-subtle" aria-labelledby="no-encontrado">
+                <h2 id="no-encontrado" class="h6 d-flex align-items-center gap-2 text-warning-emphasis">
+                    <i class="bi bi-question-circle" aria-hidden="true"></i> Código no registrado
+                </h2>
+                <p class="mb-3">
+                    El código <span class="font-monospace fw-medium text-break" th:text="${codigoBuscado}">000</span>
+                    no está en tu inventario.
+                </p>
+                <a th:href="@{/productos/nuevo(codigo=${codigoBuscado})}"
+                   class="btn btn-success d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear producto con este código
+                </a>
+            </section>
+
+            <!-- Estado inicial: todavía no se ha escaneado nada -->
+            <div th:if="${codigoBuscado == null}" class="border rounded p-4 text-center text-body-secondary">
+                <i class="bi bi-upc-scan fs-3 d-block mb-2" aria-hidden="true"></i>
+                <p class="mb-0">Escanea un producto para ver su stock y registrar una entrada o una salida.</p>
+            </div>
+        </div>
+
+        <!-- Columna lateral: alertas de stock bajo -->
+        <div class="col-lg-5">
+            <section class="border rounded" aria-labelledby="titulo-alertas">
+                <div class="d-flex align-items-center justify-content-between gap-2 px-3 py-2 border-bottom">
+                    <h2 id="titulo-alertas" class="h6 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle text-warning-emphasis" aria-hidden="true"></i>
+                        Stock bajo
+                        <span class="badge rounded-pill text-bg-secondary cifra" th:text="${#lists.size(alertas)}">0</span>
+                    </h2>
+                    <a th:if="${!#lists.isEmpty(alertas)}" th:href="@{/productos(filtro='bajo')}" class="small d-inline-block py-2">Ver todos</a>
+                </div>
+
+                <div th:if="${#lists.isEmpty(alertas)}" class="p-3 text-center text-body-secondary small">
+                    <i class="bi bi-check-circle fs-4 d-block mb-1 text-success-emphasis" aria-hidden="true"></i>
+                    Todos los productos están por encima de su stock mínimo.
+                </div>
+
+                <div th:unless="${#lists.isEmpty(alertas)}" class="table-responsive tabla-alertas">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <caption class="visually-hidden">Productos con cantidad menor o igual a su stock mínimo</caption>
+                        <thead class="sticky-top">
+                        <tr>
+                            <th scope="col" class="ps-3">Producto</th>
+                            <th scope="col" class="text-end">Cant.</th>
+                            <th scope="col" class="text-end pe-3">Mín.</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${alertas}" th:classappend="${p.cantidad == 0} ? 'fila-agotado' : 'fila-stock-bajo'">
+                            <td class="ps-3 text-break">
+                                <a th:href="@{/(codigo=${p.codigoBarras})}" class="link-body-emphasis text-decoration-none"
+                                   th:text="${p.nombre}">Producto</a>
+                                <span th:if="${p.cantidad == 0}" class="visually-hidden">(agotado)</span>
+                            </td>
+                            <td class="text-end cifra fw-semibold" th:text="${p.cantidad}">0</td>
+                            <td class="text-end cifra pe-3 text-body-secondary" th:text="${p.stockMinimo}">0</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 </main>
 </body>
