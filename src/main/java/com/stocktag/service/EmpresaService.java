@@ -8,6 +8,9 @@ import com.stocktag.repository.EmpresaResumen;
 import com.stocktag.repository.UsuarioRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,10 +98,47 @@ public class EmpresaService {
         return empresa;
     }
 
+    /**
+     * Cambia la contraseña del usuario de una empresa (la guarda con BCrypt) y, al confirmarse
+     * la transacción, cierra sus sesiones abiertas: la contraseña anterior deja de servir de
+     * inmediato. Funciona también con empresas desactivadas, que siguen sin poder entrar.
+     *
+     * <p>Solo el ADMIN_PLATAFORMA puede usarlo. La ruta ya está protegida en SecurityConfig;
+     * se revisa también aquí para que ningún otro llamado pueda cambiar contraseñas.
+     *
+     * @return el usuario con la contraseña nueva
+     * @throws EmpresaException si la empresa no existe, no tiene usuario o la contraseña no es válida
+     * @throws AccessDeniedException si quien lo pide no es el administrador de la plataforma
+     */
+    public Usuario restablecerClave(Long empresaId, String nuevaClave) {
+        exigirAdministrador();
+        Empresa empresa = (empresaId == null ? null : empresaRepository.findById(empresaId).orElse(null));
+        if (empresa == null) {
+            throw new EmpresaException(null, "La empresa indicada no existe.");
+        }
+        Usuario usuario = usuarioRepository.findFirstByEmpresaIdAndRol(empresa.getId(), Rol.EMPRESA)
+                .orElseThrow(() -> new EmpresaException(null,
+                        "La empresa \"" + empresa.getNombre() + "\" no tiene un usuario para iniciar sesión."));
+        validarClave(nuevaClave);
+
+        usuario.setPassword(passwordEncoder.encode(nuevaClave));
+        eventos.publishEvent(new ClaveRestablecidaEvent(usuario.getUsername()));
+        return usuario;
+    }
+
     /** Empresas con su usuario y número de productos, ordenadas por nombre. */
     @Transactional(readOnly = true)
     public List<EmpresaResumen> listarEmpresas() {
         return empresaRepository.listarResumen();
+    }
+
+    private static void exigirAdministrador() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean esAdministrador = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> ("ROLE_" + Rol.ADMIN_PLATAFORMA.name()).equals(a.getAuthority()));
+        if (!esAdministrador) {
+            throw new AccessDeniedException("Solo el administrador de la plataforma puede restablecer contraseñas.");
+        }
     }
 
     private static String obligatorio(String valor, String campo, String mensaje) {

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Restablecer contraseña')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container-fluid py-3">
+    <div class="formulario-contenedor">
+        <nav aria-label="Ruta" class="small mb-1">
+            <a th:href="@{/admin}" class="link-body-emphasis d-inline-flex align-items-center gap-1">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Empresas
+            </a>
+        </nav>
+        <div class="mb-3">
+            <h1 class="h4 mb-0">Restablecer contraseña</h1>
+            <p class="text-body-secondary small mb-0 text-break">
+                <span class="fw-medium text-body" th:text="${empresa.nombre}">Tienda La Esquina</span>
+                <span aria-hidden="true">·</span>
+                usuario <span class="font-monospace text-body" th:text="${empresa.username}">tienda</span>
+            </p>
+        </div>
+
+        <!--
+          novalidate: la validación la hace el servidor (anotaciones de ClaveForm y EmpresaService) para
+          que los mensajes salgan en español debajo de cada campo. El foco va al primer campo con error.
+          Las contraseñas nunca se devuelven: tras un error hay que escribirlas de nuevo.
+        -->
+        <form th:action="@{/admin/empresas/{id}/clave(id=${empresa.id})}" th:object="${claveForm}" method="post"
+              novalidate class="border rounded p-3">
+            <div th:with="errClave=${#fields.hasErrors('password')},
+                          errConfirmacion=${#fields.hasErrors('confirmacion')},
+                          foco=${!errClave and errConfirmacion} ? 'confirmacion' : 'password'">
+
+                <div class="d-flex align-items-start gap-2 small mb-3">
+                    <i class="bi bi-info-circle text-body-secondary flex-shrink-0 mt-1" aria-hidden="true"></i>
+                    <p class="mb-0">
+                        La contraseña anterior deja de servir y se cierran las sesiones abiertas de este usuario.
+                        Comunícale la contraseña nueva a la empresa.
+                    </p>
+                </div>
+
+                <div class="row g-3 mb-2">
+                    <div class="col-sm-6">
+                        <label for="password" class="form-label">Contraseña nueva</label>
+                        <input type="password" th:field="*{password}" th:errorclass="is-invalid"
+                               class="form-control" minlength="8" maxlength="72" required
+                               autocomplete="new-password"
+                               th:autofocus="${foco == 'password'}"
+                               th:aria-invalid="${errClave} ? 'true'"
+                               th:aria-describedby="${errClave} ? 'password-ayuda password-error' : 'password-ayuda'">
+                        <div id="password-ayuda" class="form-text">Mínimo 8 caracteres.</div>
+                        <div th:if="${errClave}" id="password-error" class="invalid-feedback d-block"
+                             th:errors="*{password}">Error</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="confirmacion" class="form-label">Confirmar contraseña</label>
+                        <input type="password" th:field="*{confirmacion}" th:errorclass="is-invalid"
+                               class="form-control" maxlength="72" required
+                               autocomplete="new-password"
+                               th:autofocus="${foco == 'confirmacion'}"
+                               th:aria-invalid="${errConfirmacion} ? 'true'"
+                               th:aria-describedby="${errConfirmacion} ? 'confirmacion-error'">
+                        <div th:if="${errConfirmacion}" id="confirmacion-error" class="invalid-feedback d-block"
+                             th:errors="*{confirmacion}">Error</div>
+                    </div>
+                </div>
+
+                <!-- Mostrar contraseñas: solo aparece si hay JavaScript (lo activa /js/mostrar-claves.js) -->
+                <div class="form-check mb-3" data-mostrar-claves hidden>
+                    <input class="form-check-input" type="checkbox" id="mostrarClaves">
+                    <label class="form-check-label" for="mostrarClaves">Mostrar contraseñas</label>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success btn-tactil d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-key" aria-hidden="true"></i> Guardar contraseña nueva
+                    </button>
+                    <a th:href="@{/admin}" class="btn btn-barra btn-tactil d-inline-flex align-items-center">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+<script th:src="@{/js/mostrar-claves.js}" defer></script>
+</body>
+</html>

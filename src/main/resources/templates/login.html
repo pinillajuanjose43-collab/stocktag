@@ -17,6 +17,9 @@
                 <div th:if="${param.desactivada}" class="alert alert-warning py-2 small" role="alert">
                     Tu empresa está desactivada. Comunícate con el administrador de la plataforma.
                 </div>
+                <div th:if="${param.claveRestablecida}" class="alert alert-warning py-2 small" role="alert">
+                    El administrador restableció tu contraseña y tu sesión se cerró. Ingresa con la contraseña nueva.
+                </div>
                 <div th:if="${param.salida}" class="alert alert-secondary py-2 small" role="status">
                     Cerraste sesión correctamente.
                 </div>

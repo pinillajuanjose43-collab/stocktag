@@ -10,7 +10,8 @@ import java.lang.annotation.Target;
 
 /**
  * La contraseña y su confirmación deben ser iguales. El error se muestra debajo del campo
- * "confirmacion" (no como error general del formulario).
+ * "confirmacion" (no como error general del formulario). Se usa en los formularios que
+ * implementan {@link FormularioConClave}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
