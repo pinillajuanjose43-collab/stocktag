@@ -7,13 +7,16 @@ import com.stocktag.repository.EmpresaRepository;
 import com.stocktag.repository.UsuarioRepository;
 import com.stocktag.security.UsuarioAutenticado;
 import com.stocktag.service.EmpresaService;
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -300,7 +303,7 @@ class AdminPanelTest {
 
     @Test
     void adminNoVeInventarios() throws Exception {
-        for (String ruta : new String[]{"/", "/productos", "/productos/nuevo", "/alertas", "/movimientos", "/reporte.csv"}) {
+        for (String ruta : new String[]{"/productos", "/productos/nuevo", "/alertas", "/movimientos", "/reporte.csv"}) {
             mockMvc.perform(get(ruta).with(admin()))
                     .andExpect(status().isForbidden());
         }
@@ -315,9 +318,56 @@ class AdminPanelTest {
     @Test
     void adminConLoginRealTampocoVeInventariosPeroSiSuPanel() throws Exception {
         MockHttpSession sesion = iniciarSesion("admin", "admin123");
-        mockMvc.perform(get("/").session(sesion)).andExpect(status().isForbidden());
+        mockMvc.perform(get("/").session(sesion)).andExpect(redirectedUrl("/admin"));
         mockMvc.perform(get("/reporte.csv").session(sesion)).andExpect(status().isForbidden());
         mockMvc.perform(get("/admin").session(sesion)).andExpect(status().isOk());
+    }
+
+    @Test
+    void adminQueAbreLaRaizVaASuPanelSinVerElInventario() throws Exception {
+        mockMvc.perform(get("/").with(admin()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
+        mockMvc.perform(get("/").param("codigo", "7701").with(admin()))
+                .andExpect(redirectedUrl("/admin"));
+        // Un POST a la raíz no es "abrir la página": sigue siendo 403.
+        mockMvc.perform(post("/").with(admin()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paginaDeAccesoDenegadoDelAdminLeExplicaQueNoVeInventarios() throws Exception {
+        mockMvc.perform(get("/productos").with(admin())).andExpect(status().isForbidden());
+        mockMvc.perform(paginaDeError403().with(admin()))
+                .andExpect(content().string(allOf(
+                        containsString("El administrador de la plataforma no tiene acceso a los inventarios de las empresas."),
+                        containsString("Ir a empresas"),
+                        not(containsString("comunícate con el")),
+                        not(containsString("Volver a Escanear")))));
+    }
+
+    @Test
+    void paginaDeAccesoDenegadoDeLaEmpresaLaDevuelveAEscanear() throws Exception {
+        Datos datos = registrar("Tienda Sin Panel");
+        RequestPostProcessor empresa = user(new UsuarioAutenticado(
+                usuarioRepository.findByUsername(datos.username()).orElseThrow()));
+
+        mockMvc.perform(get("/admin").with(empresa)).andExpect(status().isForbidden());
+        mockMvc.perform(paginaDeError403().with(empresa))
+                .andExpect(content().string(allOf(
+                        containsString("Esta sección es solo para el administrador de la plataforma."),
+                        containsString("Volver a Escanear"),
+                        not(containsString("Ir a empresas")))));
+    }
+
+    @Test
+    void encabezadoFechaDeAltaTieneVersionCortaParaPantallasPequenas() throws Exception {
+        registrar("Tienda Encabezado");
+        mockMvc.perform(get("/admin").with(admin()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("<span class=\"d-none d-lg-inline\">Fecha de alta</span>"),
+                        containsString("<abbr class=\"d-lg-none\" title=\"Fecha de alta\">Alta</abbr>"))));
     }
 
     // --- Utilidades ------------------------------------------------------------------
@@ -344,6 +394,16 @@ class AdminPanelTest {
         MockHttpSession sesion = (MockHttpSession) resultado.getRequest().getSession(false);
         assertThat(sesion).isNotNull();
         return sesion;
+    }
+
+    /**
+     * MockMvc no hace el despacho de error del contenedor tras un 403, así que la página
+     * (error/403.html) se pide directamente a /error con el código de estado, como lo haría Tomcat.
+     */
+    private static MockHttpServletRequestBuilder paginaDeError403() {
+        return get("/error")
+                .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 403)
+                .accept(MediaType.TEXT_HTML);
     }
 
     private static RequestPostProcessor admin() {

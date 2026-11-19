@@ -21,6 +21,8 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN_PLATAFORMA")
                         .anyRequest().hasRole("EMPRESA"))
+                // El administrador que abre / va a /admin; el resto de accesos denegados sigue en 403.
+                .exceptionHandling(errores -> errores.accessDeniedHandler(new AccesoDenegadoHandler()))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler(new RedireccionPorRolHandler())

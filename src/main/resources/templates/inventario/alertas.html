@@ -17,13 +17,32 @@
                 Productos con cantidad igual o menor a su stock mínimo
             </p>
         </div>
-        <a th:replace="~{fragments/inventario :: descargarCsv}"></a>
+        <th:block th:if="${hayProductos}">
+            <a th:replace="~{fragments/inventario :: descargarCsv}"></a>
+        </th:block>
     </div>
 
     <div th:replace="~{fragments/inventario :: mensajes}"></div>
 
+    <!-- Estado vacío: la empresa todavía no tiene productos -->
+    <div th:if="${!hayProductos}" class="border rounded p-4 text-center">
+        <i class="bi bi-box-seam fs-3 d-block mb-2 text-body-secondary" aria-hidden="true"></i>
+        <h2 class="h6">Aún no tienes productos</h2>
+        <p class="text-body-secondary mb-3">
+            Cuando registres productos, aquí aparecerán los que lleguen a su stock mínimo.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a th:href="@{/productos/nuevo}" class="btn btn-success btn-tactil d-inline-flex align-items-center gap-2">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear primer producto
+            </a>
+            <a th:href="@{/}" class="btn btn-barra btn-tactil d-inline-flex align-items-center gap-2">
+                <i class="bi bi-upc-scan" aria-hidden="true"></i> Ir a escanear
+            </a>
+        </div>
+    </div>
+
     <!-- Estado vacío: ningún producto en o por debajo de su stock mínimo -->
-    <div th:if="${#lists.isEmpty(alertas)}" class="border rounded p-4 text-center">
+    <div th:if="${hayProductos and #lists.isEmpty(alertas)}" class="border rounded p-4 text-center">
         <i class="bi bi-check-circle fs-3 d-block mb-2 text-success-emphasis" aria-hidden="true"></i>
         <h2 class="h6">No hay alertas de stock</h2>
         <p class="text-body-secondary mb-3">Todos los productos están por encima de su stock mínimo.</p>

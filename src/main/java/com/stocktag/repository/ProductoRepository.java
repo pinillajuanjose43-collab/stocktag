@@ -17,6 +17,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     Optional<Producto> findByEmpresaIdAndCodigoBarras(Long empresaId, String codigoBarras);
 
+    boolean existsByEmpresaId(Long empresaId);
+
     boolean existsByEmpresaIdAndCodigoBarras(Long empresaId, String codigoBarras);
 
     @Query("""

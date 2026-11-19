@@ -207,6 +207,31 @@ class InventarioVistasTest {
                         not(containsString("<table")))));
     }
 
+    @Test
+    void dashboardDeEmpresaSinProductosInvitaACrearElPrimero() throws Exception {
+        Empresa nueva = nuevaEmpresa("Tienda Recién Creada");
+
+        mockMvc.perform(get("/").with(sesion(nueva)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("Aún no tienes productos"),
+                        containsString("Crear primer producto"),
+                        containsString("href=\"/productos/nuevo\""),
+                        not(containsString("Todos los productos están por encima de su stock mínimo")))));
+    }
+
+    @Test
+    void dashboardConProductosSinAlertasLoDiceSinEstadoVacio() throws Exception {
+        Empresa conStock = nuevaEmpresa("Tienda Surtida");
+        producto(conStock, "8801", "Tornillos", 5, 50);
+
+        mockMvc.perform(get("/").with(sesion(conStock)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("Todos los productos están por encima de su stock mínimo"),
+                        not(containsString("Aún no tienes productos")))));
+    }
+
     // --- Formulario de producto --------------------------------------------------------
 
     @Test

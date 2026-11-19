@@ -113,6 +113,15 @@ public class InventarioService {
                 .toList();
     }
 
+    /**
+     * Si la empresa autenticada tiene al menos un producto. Las vistas lo usan para distinguir
+     * "no hay alertas" de "todavía no hay productos" (estado vacío con el botón para crear el primero).
+     */
+    @Transactional(readOnly = true)
+    public boolean tieneProductos() {
+        return productoRepository.existsByEmpresaId(empresaActualId());
+    }
+
     /** Número de productos de la empresa autenticada con stock bajo (contador de la barra de navegación). */
     @Transactional(readOnly = true)
     public long contarAlertasStock() {

@@ -317,6 +317,19 @@ class InventarioServiceTest {
         assertThat(inventarioService.contarAlertasStock()).isEqualTo(1);
     }
 
+    @Test
+    void tieneProductosSoloCuentaLosDeLaEmpresaAutenticada() {
+        iniciarSesionComo(papeleria);
+        assertThat(inventarioService.tieneProductos()).isFalse();
+
+        iniciarSesionComo(ferreteria);
+        crearConStock("7701", "Martillo", 0, 0);
+        assertThat(inventarioService.tieneProductos()).isTrue();
+
+        iniciarSesionComo(papeleria);
+        assertThat(inventarioService.tieneProductos()).isFalse();
+    }
+
     // --- Historial de movimientos ----------------------------------------------------
 
     @Test
