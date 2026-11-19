@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
  * para que un campo vacío muestre solo el mensaje de @NotBlank y no dos errores a la vez.
  */
 @ClavesCoinciden
-public class EmpresaForm {
+public class EmpresaForm implements FormularioConClave {
 
     @NotBlank(message = "Escribe el nombre de la empresa.")
     @Size(max = 120, message = "El nombre admite máximo 120 caracteres.")
@@ -57,6 +57,7 @@ public class EmpresaForm {
         this.username = username;
     }
 
+    @Override
     public String getPassword() {
         return password;
     }
@@ -65,6 +66,7 @@ public class EmpresaForm {
         this.password = password;
     }
 
+    @Override
     public String getConfirmacion() {
         return confirmacion;
     }

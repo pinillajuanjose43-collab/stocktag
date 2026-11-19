@@ -53,6 +53,7 @@ class AdminPanelTest {
 
     private static final AtomicInteger SECUENCIA = new AtomicInteger();
     private static final String CLAVE = "clave-segura";
+    private static final String NUEVA_CLAVE = "clave-nueva-2026";
 
     @Autowired
     private MockMvc mockMvc;
@@ -278,6 +279,181 @@ class AdminPanelTest {
         mockMvc.perform(get("/login").param("desactivada", ""))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Tu empresa está desactivada")));
+    }
+
+    // --- Restablecer contraseña ------------------------------------------------------
+
+    @Test
+    void laTablaTieneElBotonRestablecerContrasenaPorEmpresa() throws Exception {
+        Datos datos = registrar("Tienda Boton Clave");
+        mockMvc.perform(get("/admin").with(admin()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("href=\"/admin/empresas/" + datos.empresa().getId() + "/clave\""),
+                        containsString("Restablecer contraseña de Tienda Boton Clave"),
+                        containsString("Restablecer contraseña</span>"))));
+    }
+
+    @Test
+    void formularioDeClaveMuestraLaEmpresaElUsuarioYLosDosCampos() throws Exception {
+        Datos datos = registrar("Tienda Form Clave");
+        mockMvc.perform(get("/admin/empresas/{id}/clave", datos.empresa().getId()).with(admin()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/clave-form"))
+                .andExpect(content().string(allOf(
+                        containsString("Restablecer contraseña"),
+                        containsString("Tienda Form Clave"),
+                        containsString(datos.username()),
+                        containsString("action=\"/admin/empresas/" + datos.empresa().getId() + "/clave\""),
+                        containsString("name=\"password\""),
+                        containsString("name=\"confirmacion\""),
+                        containsString("autocomplete=\"new-password\""),
+                        containsString("se cierran las sesiones abiertas"))));
+    }
+
+    @Test
+    void formularioDeClaveDeEmpresaInexistenteVuelveAlPanelConError() throws Exception {
+        mockMvc.perform(get("/admin/empresas/{id}/clave", 987_654L).with(admin()))
+                .andExpect(redirectedUrl("/admin"))
+                .andExpect(flash().attribute("error",
+                        "La empresa indicada no existe o no tiene un usuario para iniciar sesión."));
+        mockMvc.perform(post("/admin/empresas/{id}/clave", 987_654L).with(admin()).with(csrf())
+                        .param("password", NUEVA_CLAVE).param("confirmacion", NUEVA_CLAVE))
+                .andExpect(redirectedUrl("/admin"))
+                .andExpect(flash().attribute("error", "La empresa indicada no existe."));
+    }
+
+    @Test
+    void restablecerClaveCambiaLaContrasenaLaNuevaSirveYLaAnteriorYaNo() throws Exception {
+        Datos datos = registrar("Tienda Olvido");
+
+        mockMvc.perform(post("/admin/empresas/{id}/clave", datos.empresa().getId()).with(admin()).with(csrf())
+                        .param("password", NUEVA_CLAVE)
+                        .param("confirmacion", NUEVA_CLAVE))
+                .andExpect(redirectedUrl("/admin"))
+                .andExpect(flash().attribute("exito", "Contraseña de \"Tienda Olvido\" restablecida. "
+                        + "Comunícale la contraseña nueva al usuario \"" + datos.username()
+                        + "\"; sus sesiones abiertas se cerraron."));
+
+        mockMvc.perform(formLogin("/login").user(datos.username()).password(CLAVE))
+                .andExpect(redirectedUrl("/login?error"));
+        mockMvc.perform(formLogin("/login").user(datos.username()).password(NUEVA_CLAVE))
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void restablecerClaveCierraLasSesionesAbiertasDeEseUsuarioYNoLasDeOtros() throws Exception {
+        Datos datos = registrar("Tienda Sesion Clave");
+        Datos otra = registrar("Tienda Sesion Vecina");
+        MockHttpSession sesion = iniciarSesion(datos.username());
+        MockHttpSession sesionOtra = iniciarSesion(otra.username());
+        MockHttpSession sesionAdmin = iniciarSesion("admin", "admin123");
+        mockMvc.perform(get("/productos").session(sesion)).andExpect(status().isOk());
+
+        mockMvc.perform(post("/admin/empresas/{id}/clave", datos.empresa().getId()).session(sesionAdmin).with(csrf())
+                        .param("password", NUEVA_CLAVE)
+                        .param("confirmacion", NUEVA_CLAVE))
+                .andExpect(redirectedUrl("/admin"));
+
+        // La sesión con la contraseña anterior se cierra y el login explica por qué.
+        mockMvc.perform(get("/productos").session(sesion))
+                .andExpect(redirectedUrl("/login?claveRestablecida"));
+        assertThat(sesion.isInvalid()).isTrue();
+
+        // Ni la otra empresa ni el administrador pierden su sesión.
+        mockMvc.perform(get("/productos").session(sesionOtra)).andExpect(status().isOk());
+        mockMvc.perform(get("/admin").session(sesionAdmin)).andExpect(status().isOk());
+    }
+
+    @Test
+    void elLoginMuestraElAvisoDeContrasenaRestablecida() throws Exception {
+        mockMvc.perform(get("/login").param("claveRestablecida", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("El administrador restableció tu contraseña"),
+                        not(containsString("Tu empresa está desactivada")))));
+    }
+
+    @Test
+    void erroresDelFormularioDeClaveSeMuestranDebajoDeCadaCampoYNoCambianLaClave() throws Exception {
+        Datos datos = registrar("Tienda Errores Clave");
+        Long id = datos.empresa().getId();
+
+        // Corta y sin coincidir.
+        mockMvc.perform(post("/admin/empresas/{id}/clave", id).with(admin()).with(csrf())
+                        .param("password", "corta")
+                        .param("confirmacion", "otra"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/clave-form"))
+                .andExpect(content().string(allOf(
+                        containsString("Tienda Errores Clave"),
+                        containsString("id=\"password-error\""),
+                        containsString("La contraseña debe tener entre 8 y 72 caracteres."),
+                        containsString("id=\"confirmacion-error\""),
+                        containsString("Las contraseñas no coinciden."),
+                        not(containsString("value=\"corta\"")),
+                        not(containsString("value=\"otra\"")))));
+
+        // Válida pero la confirmación es distinta: el error va solo debajo de la confirmación.
+        mockMvc.perform(post("/admin/empresas/{id}/clave", id).with(admin()).with(csrf())
+                        .param("password", NUEVA_CLAVE)
+                        .param("confirmacion", NUEVA_CLAVE + "x"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("id=\"confirmacion-error\""),
+                        containsString("Las contraseñas no coinciden."),
+                        not(containsString("id=\"password-error\"")))));
+
+        // Sin confirmación.
+        mockMvc.perform(post("/admin/empresas/{id}/clave", id).with(admin()).with(csrf())
+                        .param("password", NUEVA_CLAVE)
+                        .param("confirmacion", ""))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Repite la contraseña para confirmarla.")));
+
+        // Solo espacios.
+        mockMvc.perform(post("/admin/empresas/{id}/clave", id).with(admin()).with(csrf())
+                        .param("password", "          ")
+                        .param("confirmacion", "          "))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("La contraseña no puede ser solo espacios.")));
+
+        // 40 caracteres con tilde pasan la anotación pero son 80 bytes: lo rechaza el service.
+        String larga = "ñ".repeat(40);
+        mockMvc.perform(post("/admin/empresas/{id}/clave", id).with(admin()).with(csrf())
+                        .param("password", larga)
+                        .param("confirmacion", larga))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("id=\"password-error\""),
+                        containsString("La contraseña es demasiado larga"))));
+
+        // La contraseña anterior sigue sirviendo.
+        mockMvc.perform(formLogin("/login").user(datos.username()).password(CLAVE))
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void empresaNoPuedeRestablecerContrasenas() throws Exception {
+        Datos datos = registrar("Tienda Sin Permiso");
+        Datos victima = registrar("Tienda Victima");
+        RequestPostProcessor empresa = user(new UsuarioAutenticado(
+                usuarioRepository.findByUsername(datos.username()).orElseThrow()));
+
+        mockMvc.perform(get("/admin/empresas/{id}/clave", victima.empresa().getId()).with(empresa))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/admin/empresas/{id}/clave", victima.empresa().getId()).with(empresa).with(csrf())
+                        .param("password", NUEVA_CLAVE).param("confirmacion", NUEVA_CLAVE))
+                .andExpect(status().isForbidden());
+        // Ni siquiera la suya.
+        mockMvc.perform(post("/admin/empresas/{id}/clave", datos.empresa().getId()).with(empresa).with(csrf())
+                        .param("password", NUEVA_CLAVE).param("confirmacion", NUEVA_CLAVE))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(formLogin("/login").user(victima.username()).password(CLAVE))
+                .andExpect(redirectedUrl("/"));
+        mockMvc.perform(formLogin("/login").user(datos.username()).password(CLAVE))
+                .andExpect(redirectedUrl("/"));
     }
 
     // --- Separación de roles ---------------------------------------------------------

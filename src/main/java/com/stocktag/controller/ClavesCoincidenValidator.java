@@ -3,10 +3,10 @@ package com.stocktag.controller;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class ClavesCoincidenValidator implements ConstraintValidator<ClavesCoinciden, EmpresaForm> {
+public class ClavesCoincidenValidator implements ConstraintValidator<ClavesCoinciden, FormularioConClave> {
 
     @Override
-    public boolean isValid(EmpresaForm form, ConstraintValidatorContext contexto) {
+    public boolean isValid(FormularioConClave form, ConstraintValidatorContext contexto) {
         String clave = form.getPassword();
         String confirmacion = form.getConfirmacion();
         if (clave == null || clave.isEmpty()) {

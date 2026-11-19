@@ -14,8 +14,11 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
@@ -156,6 +159,80 @@ class EmpresaServiceTest {
                 .isInstanceOf(EmpresaException.class)
                 .hasMessage("La empresa indicada no existe.");
         assertThat(eventos.stream(EmpresaDesactivadaEvent.class)).isEmpty();
+    }
+
+    // --- restablecerClave -----------------------------------------------------------
+
+    @Test
+    @WithMockUser(roles = "ADMIN_PLATAFORMA")
+    void restablecerClaveGuardaLaNuevaConBcryptYPideCerrarLasSesiones() {
+        Empresa empresa = empresaService.registrarEmpresa("Tienda Clave", "900777888-1", "tiendaclave", "clave-vieja");
+
+        Usuario usuario = empresaService.restablecerClave(empresa.getId(), "clave-nueva-123");
+
+        assertThat(usuario.getUsername()).isEqualTo("tiendaclave");
+        String hash = usuarioRepository.findByUsername("tiendaclave").orElseThrow().getPassword();
+        assertThat(hash).startsWith("$2").isNotEqualTo("clave-nueva-123");
+        assertThat(passwordEncoder.matches("clave-nueva-123", hash)).isTrue();
+        assertThat(passwordEncoder.matches("clave-vieja", hash)).isFalse();
+        assertThat(eventos.stream(ClaveRestablecidaEvent.class))
+                .containsExactly(new ClaveRestablecidaEvent("tiendaclave"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN_PLATAFORMA")
+    void restablecerClaveRechazaClavesInvalidasYConservaLaAnterior() {
+        Empresa empresa = empresaService.registrarEmpresa("Tienda Valida", "900777999-2", "tiendavalida", "clave-vieja");
+
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), "1234567"))
+                .isInstanceOf(EmpresaException.class)
+                .hasMessage("La contraseña debe tener al menos 8 caracteres.")
+                .extracting("campo").isEqualTo("password");
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), "         "))
+                .isInstanceOf(EmpresaException.class)
+                .hasMessage("La contraseña no puede ser solo espacios.");
+        // 40 eñes son 40 caracteres pero 80 bytes: BCrypt solo usaría los primeros 72.
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), "ñ".repeat(40)))
+                .isInstanceOf(EmpresaException.class)
+                .hasMessageStartingWith("La contraseña es demasiado larga");
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), null))
+                .isInstanceOf(EmpresaException.class)
+                .extracting("campo").isEqualTo("password");
+
+        String hash = usuarioRepository.findByUsername("tiendavalida").orElseThrow().getPassword();
+        assertThat(passwordEncoder.matches("clave-vieja", hash)).isTrue();
+        assertThat(eventos.stream(ClaveRestablecidaEvent.class)).isEmpty();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN_PLATAFORMA")
+    void restablecerClaveDeEmpresaInexistenteLanzaError() {
+        assertThatThrownBy(() -> empresaService.restablecerClave(999_999L, "clave-nueva-123"))
+                .isInstanceOf(EmpresaException.class)
+                .hasMessage("La empresa indicada no existe.")
+                .extracting("campo").isNull();
+        assertThat(eventos.stream(ClaveRestablecidaEvent.class)).isEmpty();
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPRESA")
+    void unaEmpresaNoPuedeRestablecerContrasenas() {
+        Empresa empresa = empresaService.registrarEmpresa("Tienda Ajena", "900777000-3", "tiendaajena", "clave-vieja");
+
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), "clave-nueva-123"))
+                .isInstanceOf(AccessDeniedException.class);
+
+        String hash = usuarioRepository.findByUsername("tiendaajena").orElseThrow().getPassword();
+        assertThat(passwordEncoder.matches("clave-vieja", hash)).isTrue();
+    }
+
+    @Test
+    @WithAnonymousUser
+    void sinIniciarSesionNoSePuedeRestablecerContrasenas() {
+        Empresa empresa = empresaService.registrarEmpresa("Tienda Anonima", "900777111-4", "tiendaanonima", "clave-vieja");
+
+        assertThatThrownBy(() -> empresaService.restablecerClave(empresa.getId(), "clave-nueva-123"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     // --- listarEmpresas --------------------------------------------------------------

@@ -1,6 +1,7 @@
 package com.stocktag.controller;
 
 import com.stocktag.model.Empresa;
+import com.stocktag.model.Usuario;
 import com.stocktag.repository.EmpresaResumen;
 import com.stocktag.service.EmpresaException;
 import com.stocktag.service.EmpresaService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Panel del ADMIN_PLATAFORMA (/admin/**, protegido en SecurityConfig). Controller delgado:
@@ -27,6 +29,7 @@ import java.util.List;
 public class AdminController {
 
     private static final String VISTA_FORMULARIO = "admin/empresa-form";
+    private static final String VISTA_CLAVE = "admin/clave-form";
 
     private final EmpresaService empresaService;
 
@@ -90,6 +93,57 @@ public class AdminController {
         form.setPassword(null);
         form.setConfirmacion(null);
         return VISTA_FORMULARIO;
+    }
+
+    /** Formulario para restablecer la contraseña del usuario de una empresa. */
+    @GetMapping("/empresas/{id}/clave")
+    public String formularioClave(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+        Optional<EmpresaResumen> empresa = buscarConUsuario(id);
+        if (empresa.isEmpty()) {
+            redirect.addFlashAttribute("error", "La empresa indicada no existe o no tiene un usuario para iniciar sesión.");
+            return "redirect:/admin";
+        }
+        model.addAttribute("empresa", empresa.get());
+        model.addAttribute("claveForm", new ClaveForm());
+        return VISTA_CLAVE;
+    }
+
+    @PostMapping("/empresas/{id}/clave")
+    public String restablecerClave(@PathVariable Long id, @Valid @ModelAttribute("claveForm") ClaveForm form,
+                                   BindingResult resultado, Model model, RedirectAttributes redirect) {
+        if (!resultado.hasErrors()) {
+            try {
+                Usuario usuario = empresaService.restablecerClave(id, form.getPassword());
+                redirect.addFlashAttribute("exito", "Contraseña de \"" + usuario.getEmpresa().getNombre()
+                        + "\" restablecida. Comunícale la contraseña nueva al usuario \"" + usuario.getUsername()
+                        + "\"; sus sesiones abiertas se cerraron.");
+                return "redirect:/admin";
+            } catch (EmpresaException e) {
+                if (e.getCampo() == null) {
+                    // La empresa no existe o no tiene usuario: el formulario no sirve de nada.
+                    redirect.addFlashAttribute("error", e.getMessage());
+                    return "redirect:/admin";
+                }
+                resultado.rejectValue(e.getCampo(), "empresa", e.getMessage());
+            }
+        }
+        Optional<EmpresaResumen> empresa = buscarConUsuario(id);
+        if (empresa.isEmpty()) {
+            redirect.addFlashAttribute("error", "La empresa indicada no existe o no tiene un usuario para iniciar sesión.");
+            return "redirect:/admin";
+        }
+        model.addAttribute("empresa", empresa.get());
+        // Las contraseñas nunca se devuelven en el HTML: hay que escribirlas de nuevo.
+        form.setPassword(null);
+        form.setConfirmacion(null);
+        return VISTA_CLAVE;
+    }
+
+    /** Fila de la tabla de esa empresa, solo si tiene un usuario al que cambiarle la contraseña. */
+    private Optional<EmpresaResumen> buscarConUsuario(Long id) {
+        return empresaService.listarEmpresas().stream()
+                .filter(e -> e.id().equals(id) && e.username() != null)
+                .findFirst();
     }
 
     private String cambiarEstado(Long id, boolean activa, RedirectAttributes redirect) {

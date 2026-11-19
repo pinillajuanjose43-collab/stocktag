@@ -15,7 +15,8 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filtroSeguridad(HttpSecurity http, SessionRegistry sessionRegistry) throws Exception {
+    public SecurityFilterChain filtroSeguridad(HttpSecurity http, SessionRegistry sessionRegistry,
+                                            SesionExpiradaStrategy sesionExpirada) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
@@ -36,12 +37,13 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?salida")
                         .permitAll())
                 // Registro de sesiones: no limita cuántas sesiones tiene un usuario (-1), solo las
-                // registra para poder expirarlas al desactivar su empresa (CierreSesionesListener).
-                // Una sesión expirada se cierra en su siguiente petición y va a /login?desactivada.
+                // registra para poder expirarlas al desactivar su empresa o restablecer su contraseña
+                // (CierreSesionesListener). Una sesión expirada se cierra en su siguiente petición y
+                // va al login con el aviso del motivo (SesionExpiradaStrategy).
                 .sessionManagement(sesion -> sesion
                         .maximumSessions(-1)
                         .sessionRegistry(sessionRegistry)
-                        .expiredUrl("/login?desactivada"));
+                        .expiredSessionStrategy(sesionExpirada));
         return http.build();
     }
 
