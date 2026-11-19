@@ -35,6 +35,7 @@ public class InventarioController {
     public String inicio(@RequestParam(name = "codigo", required = false) String codigo, Model model) {
         model.addAttribute("seccion", "inicio");
         model.addAttribute("alertas", inventarioService.verificarAlertasStock());
+        model.addAttribute("hayProductos", inventarioService.tieneProductos());
         if (codigo != null && !codigo.isBlank()) {
             String codigoBuscado = codigo.trim();
             model.addAttribute("codigoBuscado", codigoBuscado);

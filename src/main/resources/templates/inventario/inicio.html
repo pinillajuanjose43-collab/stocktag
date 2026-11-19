@@ -123,7 +123,19 @@
                     <a th:if="${!#lists.isEmpty(alertas)}" th:href="@{/alertas}" class="small d-inline-block py-2">Ver alertas</a>
                 </div>
 
-                <div th:if="${#lists.isEmpty(alertas)}" class="p-3 text-center text-body-secondary small">
+                <!-- Empresa sin productos: todavía no hay nada que vigilar, se invita a crear el primero -->
+                <div th:if="${!hayProductos}" class="p-3 text-center">
+                    <i class="bi bi-box-seam fs-4 d-block mb-1 text-body-secondary" aria-hidden="true"></i>
+                    <p class="fw-medium mb-1">Aún no tienes productos</p>
+                    <p class="text-body-secondary small mb-3">
+                        Crea el primero o escanea su código para registrarlo. Aquí verás los que lleguen a su stock mínimo.
+                    </p>
+                    <a th:href="@{/productos/nuevo}" class="btn btn-success btn-sm btn-tactil d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear primer producto
+                    </a>
+                </div>
+
+                <div th:if="${hayProductos and #lists.isEmpty(alertas)}" class="p-3 text-center text-body-secondary small">
                     <i class="bi bi-check-circle fs-4 d-block mb-1 text-success-emphasis" aria-hidden="true"></i>
                     Todos los productos están por encima de su stock mínimo.
                 </div>

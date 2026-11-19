@@ -24,6 +24,7 @@ public class AlertaController {
         long agotados = alertas.stream().filter(AlertaStock::agotado).count();
         model.addAttribute("seccion", "alertas");
         model.addAttribute("alertas", alertas);
+        model.addAttribute("hayProductos", !alertas.isEmpty() || inventarioService.tieneProductos());
         model.addAttribute("totalAgotados", agotados);
         model.addAttribute("totalStockBajo", alertas.size() - agotados);
         return "inventario/alertas";

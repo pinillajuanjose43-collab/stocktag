@@ -132,6 +132,20 @@ class AlertasHistorialReporteTest {
     }
 
     @Test
+    void alertasDeEmpresaSinProductosInvitaACrearElPrimero() throws Exception {
+        producto(papeleria, "5501", "Cuaderno", 10, 1);   // productos de otra empresa: no cuentan
+
+        mockMvc.perform(get("/alertas").with(sesion(ferreteria)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("Aún no tienes productos"),
+                        containsString("Crear primer producto"),
+                        not(containsString("No hay alertas de stock")),
+                        not(containsString("Descargar CSV")),
+                        not(containsString("Cuaderno")))));
+    }
+
+    @Test
     void barraDeNavegacionMuestraElContadorDeAlertasComoTexto() throws Exception {
         producto(ferreteria, "7701", "Martillo", 5, 2);
         producto(ferreteria, "7702", "Brocha", 4, 0);

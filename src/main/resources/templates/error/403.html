@@ -6,21 +6,43 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <main class="container-fluid py-3">
+    <!--
+      El texto y el botón dependen de quién ve la página: el administrador de la plataforma no tiene
+      inventario (vuelve a Empresas); una empresa no tiene panel de administración (vuelve a Escanear).
+    -->
     <div class="formulario-contenedor border rounded p-4">
         <i class="bi bi-shield-lock fs-3 d-block mb-2 text-body-secondary" aria-hidden="true"></i>
         <h1 class="h5">No tienes acceso a esta página</h1>
-        <p class="text-body-secondary mb-3">
-            Tu usuario no tiene permiso para ver esta sección. Si crees que es un error, comunícate con el
-            administrador de la plataforma.
-        </p>
-        <a sec:authorize="hasRole('ADMIN_PLATAFORMA')" th:href="@{/admin}"
-           class="btn btn-barra d-inline-flex align-items-center gap-2">
-            <i class="bi bi-arrow-left" aria-hidden="true"></i> Ir a empresas
-        </a>
-        <a sec:authorize="!hasRole('ADMIN_PLATAFORMA')" th:href="@{/}"
-           class="btn btn-barra d-inline-flex align-items-center gap-2">
-            <i class="bi bi-arrow-left" aria-hidden="true"></i> Ir al inventario
-        </a>
+
+        <th:block sec:authorize="hasRole('ADMIN_PLATAFORMA')">
+            <p class="text-body-secondary mb-3">
+                El administrador de la plataforma no tiene acceso a los inventarios de las empresas.
+                Desde el panel puedes registrar empresas y activarlas o desactivarlas.
+            </p>
+            <a th:href="@{/admin}" class="btn btn-barra btn-tactil d-inline-flex align-items-center gap-2">
+                <i class="bi bi-buildings" aria-hidden="true"></i> Ir a empresas
+            </a>
+        </th:block>
+
+        <th:block sec:authorize="hasRole('EMPRESA')">
+            <p class="text-body-secondary mb-3">
+                Esta sección es solo para el administrador de la plataforma. Tu usuario de empresa puede
+                usar el escaneo, los productos, las alertas y los movimientos de tu inventario.
+            </p>
+            <a th:href="@{/}" class="btn btn-barra btn-tactil d-inline-flex align-items-center gap-2">
+                <i class="bi bi-upc-scan" aria-hidden="true"></i> Volver a Escanear
+            </a>
+        </th:block>
+
+        <!-- Sin sesión (por ejemplo, un formulario vencido): se vuelve a iniciar sesión. -->
+        <th:block sec:authorize="!isAuthenticated()">
+            <p class="text-body-secondary mb-3">
+                No se pudo completar la acción. Inicia sesión de nuevo para continuar.
+            </p>
+            <a th:href="@{/login}" class="btn btn-barra btn-tactil d-inline-flex align-items-center gap-2">
+                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Iniciar sesión
+            </a>
+        </th:block>
     </div>
 </main>
 </body>

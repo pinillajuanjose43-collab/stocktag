@@ -43,34 +43,38 @@
 </head>
 <body>
 
-<nav th:fragment="navbar" class="navbar navbar-expand border-bottom bg-body-tertiary py-1" aria-label="Navegación principal">
+<nav th:fragment="navbar" class="navbar navbar-expand border-bottom bg-body-tertiary py-1" aria-label="Navegación principal"
+     th:with="esEmpresa=${#authorization.expression('hasRole(''EMPRESA'')')}">
     <div class="container-fluid gap-1 gap-sm-2">
         <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold me-0 me-sm-2" aria-label="StockTag"
            th:href="${#authorization.expression('hasRole(''ADMIN_PLATAFORMA'')')} ? @{/admin} : @{/}">
             <i class="bi bi-upc-scan" aria-hidden="true"></i>
-            <span class="d-none d-sm-inline">StockTag</span>
+            <!-- Con las cuatro secciones (rol EMPRESA) el nombre solo se muestra desde lg para dejarles espacio. -->
+            <span class="d-none" th:classappend="${esEmpresa} ? 'd-lg-inline' : 'd-sm-inline'">StockTag</span>
         </a>
 
         <!--
           Secciones del inventario. Cada controller pone "seccion" en el modelo para marcar la activa.
-          Por debajo de md (768 px) quedan solo con ícono (área táctil de 44x44 px y aria-label); así
-          las cuatro secciones, el tema y Salir caben en una fila desde 360 px sin scroll horizontal.
+          Cada enlace muestra ícono y texto mientras quepan (desde 660 px; ver .nav-texto en stocktag.css).
+          En teléfono quedan solo con ícono, con aria-label y title, y área táctil de 44x44 px; así las
+          cuatro secciones, el tema y Salir caben en una fila desde 360 px sin scroll horizontal.
+          El contador de alertas se ve en todos los anchos.
         -->
-        <ul sec:authorize="hasRole('EMPRESA')" class="navbar-nav gap-0 gap-sm-1">
+        <ul sec:authorize="hasRole('EMPRESA')" class="navbar-nav nav-secciones gap-0 gap-sm-1">
             <li class="nav-item">
-                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/}"
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1" th:href="@{/}"
                    th:classappend="${seccion == 'inicio'} ? 'active fw-medium'"
-                   th:aria-current="${seccion == 'inicio'} ? 'page'" aria-label="Escanear">
+                   th:aria-current="${seccion == 'inicio'} ? 'page'" aria-label="Escanear" title="Escanear">
                     <i class="bi bi-upc" aria-hidden="true"></i>
-                    <span class="d-none d-md-inline">Escanear</span>
+                    <span class="nav-texto">Escanear</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/productos}"
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1" th:href="@{/productos}"
                    th:classappend="${seccion == 'productos'} ? 'active fw-medium'"
-                   th:aria-current="${seccion == 'productos'} ? 'page'" aria-label="Productos">
+                   th:aria-current="${seccion == 'productos'} ? 'page'" aria-label="Productos" title="Productos">
                     <i class="bi bi-list-ul" aria-hidden="true"></i>
-                    <span class="d-none d-md-inline">Productos</span>
+                    <span class="nav-texto">Productos</span>
                 </a>
             </li>
             <!--
@@ -80,25 +84,28 @@
             -->
             <li class="nav-item"
                 th:with="hayAlertas=${totalAlertas != null and totalAlertas > 0}">
-                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/alertas}"
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1" th:href="@{/alertas}"
                    th:classappend="${seccion == 'alertas'} ? 'active fw-medium'"
                    th:aria-current="${seccion == 'alertas'} ? 'page'"
                    th:aria-label="${hayAlertas}
                         ? 'Alertas: ' + ${totalAlertas} + (${totalAlertas == 1} ? ' producto con stock bajo' : ' productos con stock bajo')
                         : 'Alertas: ningún producto con stock bajo'"
-                   aria-label="Alertas">
+                   th:title="${hayAlertas}
+                        ? 'Alertas: ' + ${totalAlertas} + (${totalAlertas == 1} ? ' producto con stock bajo' : ' productos con stock bajo')
+                        : 'Alertas'"
+                   aria-label="Alertas" title="Alertas">
                     <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-                    <span class="d-none d-md-inline">Alertas</span>
+                    <span class="nav-texto">Alertas</span>
                     <span th:if="${hayAlertas}" class="badge rounded-pill contador-alertas cifra"
                           th:text="${totalAlertas > 99} ? '99+' : ${totalAlertas}">3</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link nav-seccion d-flex align-items-center gap-1 px-2" th:href="@{/movimientos}"
+                <a class="nav-link nav-seccion d-flex align-items-center gap-1" th:href="@{/movimientos}"
                    th:classappend="${seccion == 'movimientos'} ? 'active fw-medium'"
-                   th:aria-current="${seccion == 'movimientos'} ? 'page'" aria-label="Movimientos">
+                   th:aria-current="${seccion == 'movimientos'} ? 'page'" aria-label="Movimientos" title="Movimientos">
                     <i class="bi bi-clock-history" aria-hidden="true"></i>
-                    <span class="d-none d-md-inline">Movimientos</span>
+                    <span class="nav-texto">Movimientos</span>
                 </a>
             </li>
         </ul>
@@ -120,7 +127,7 @@
                 <button type="submit" class="btn btn-barra d-flex align-items-center gap-2 btn-icono"
                         aria-label="Salir" title="Salir">
                     <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-                    <span class="d-none d-sm-inline">Salir</span>
+                    <span class="d-none" th:classappend="${esEmpresa} ? 'd-lg-inline' : 'd-sm-inline'">Salir</span>
                 </button>
             </form>
         </div>
